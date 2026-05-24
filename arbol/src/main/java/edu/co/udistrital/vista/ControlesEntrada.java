@@ -3,6 +3,7 @@ package edu.co.udistrital.vista;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.ActionListener;
 
 /**
  * Barra de herramientas superior (Toolbar).
@@ -36,6 +37,7 @@ public class ControlesEntrada extends JPanel {
         panelValidar.add(crearEtiqueta("ID Validar:"));
         txtIdValidar = crearCampoTexto();
         btnValidar = crearBoton("VALIDAR", NEON_FUCSIA);
+        btnValidar.setActionCommand("Validar");
         panelValidar.add(txtIdValidar);
         panelValidar.add(btnValidar);
 
@@ -44,11 +46,13 @@ public class ControlesEntrada extends JPanel {
         panelInsertar.add(crearEtiqueta("ID Insertar:"));
         txtIdInsertar = crearCampoTexto();
         btnInsertar = crearBoton("INSERTAR", NEON_AZUL);
+        btnInsertar.setActionCommand("Insertar");
         panelInsertar.add(txtIdInsertar);
         panelInsertar.add(btnInsertar);
 
         // --- BLOQUE 3: REINICIAR ---
         btnReiniciar = crearBoton("REINICIAR", new Color(100, 100, 110));
+        btnInsertar.setActionCommand("Reiniciar");
 
         // Ensamblar en una sola línea horizontal
         add(panelValidar);
@@ -96,12 +100,37 @@ public class ControlesEntrada extends JPanel {
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.setBorder(new EmptyBorder(6, 12, 6, 12)); // Padding reducido
         return btn;
+    }      
+    
+    public void agregarListenerBotones(ActionListener al) {
+        btnInsertar.addActionListener(al); 
+        btnReiniciar.addActionListener(al); 
+        btnValidar.addActionListener(al); 
+    }
+    
+    public void limpiarCajaInsertar() {
+        txtIdInsertar.setText("");
+    }
+    /**
+     * Metodo para enfocar un boton
+     * 
+     * @param btn nombre del boton a enfocar
+     */
+    public void focusBtn(String btn) {
+        JButton b = null;
+        switch (btn) {
+            case "Insertar" -> b = btnInsertar;
+            case "Validar" -> b = btnValidar;
+            case "Reiniciar" -> b = btnReiniciar;
+            default -> {
+            }
+        }      
+        if(b != null) {
+            b.requestFocus();
+        }
     }
 
     // Getters
     public String getIdValidar() { return txtIdValidar.getText(); }
     public String getIdInsertar() { return txtIdInsertar.getText(); }
-    public JButton getBtnValidar() { return btnValidar; }
-    public JButton getBtnInsertar() { return btnInsertar; }
-    public JButton getBtnReiniciar() { return btnReiniciar; }
 }

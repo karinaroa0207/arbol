@@ -2,19 +2,20 @@ package edu.co.udistrital.vista;
 
 import javax.swing.*;
 import java.awt.*;
+import edu.co.udistrital.controlador.VisualizadorMensajes;
 
-public class VentanaPrincipal extends JFrame {
-    
+public class VentanaPrincipal extends JFrame implements VisualizadorMensajes {
+
     private ControlesEntrada controlesEntrada;
     private VisualizadorArbolCompleto visualizadorArbol;
 
     public VentanaPrincipal() {
         setTitle("QueBoleta - Sistema de Indexación B+");
         // Hacemos la ventana un poco más ancha para que los árboles grandes quepan mejor
-        setSize(1000, 800); 
+        setSize(1000, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-        
+
         // LA SOLUCIÓN: BorderLayout obliga a los elementos a pegarse a los bordes
         setLayout(new BorderLayout());
         getContentPane().setBackground(new Color(18, 18, 22));
@@ -28,7 +29,7 @@ public class VentanaPrincipal extends JFrame {
         panelTitulo.setBackground(new Color(18, 18, 22));
         // Agregamos un margen limpio: 15px arriba, 5px abajo
         panelTitulo.setBorder(BorderFactory.createEmptyBorder(15, 0, 5, 0));
-        
+
         JLabel lblTitulo = new JLabel("QUEBOLETA - ÁRBOL B+");
         lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 32));
         lblTitulo.setForeground(new Color(177, 0, 255)); // Púrpura Neón
@@ -39,7 +40,7 @@ public class VentanaPrincipal extends JFrame {
         JPanel panelSuperior = new JPanel();
         panelSuperior.setLayout(new BoxLayout(panelSuperior, BoxLayout.Y_AXIS));
         panelSuperior.setBackground(new Color(18, 18, 22));
-        
+
         panelSuperior.add(panelTitulo);
         panelSuperior.add(controlesEntrada);
 
@@ -47,9 +48,50 @@ public class VentanaPrincipal extends JFrame {
         // Pegamos el panel superior estrictamente al NORTE (Arriba)
         add(panelSuperior, BorderLayout.NORTH);
         // Le damos todo el espacio sobrante del CENTRO al dibujo del árbol
-        add(visualizadorArbol, BorderLayout.CENTER); 
+        add(visualizadorArbol, BorderLayout.CENTER);
     }
 
-    public ControlesEntrada getControlesEntrada() { return controlesEntrada; }
-    public VisualizadorArbolCompleto getVisualizadorArbol() { return visualizadorArbol; }
+    public ControlesEntrada getControlesEntrada() {
+        return controlesEntrada;
+    }
+
+    public VisualizadorArbolCompleto getVisualizadorArbol() {
+        return visualizadorArbol;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * El mensaje se renderiza en la pantalla mediante un cuadro de diálogo
+     * emergente modal ({@link JOptionPane}).
+     *
+     */
+    @Override
+    public void mostrarMensajeError(String mensaje, String titulo) {
+        JOptionPane.showMessageDialog(null, mensaje, titulo, JOptionPane.ERROR_MESSAGE);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * El mensaje se renderiza en la pantalla mediante un cuadro de diálogo
+     * emergente modal ({@link JOptionPane}).
+     *
+     */
+    @Override
+    public void mostrarMensajeError(String mensaje) {
+        mostrarMensajeError(mensaje, "Error");
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * El mensaje se renderiza en la pantalla mediante un cuadro de diálogo
+     * emergente modal ({@link JOptionPane}).
+     *
+     */
+    @Override
+    public void mostrarMensaje(String mensaje) {
+        JOptionPane.showMessageDialog(null, mensaje);
+    }
 }
