@@ -52,7 +52,7 @@ public class ControlesEntrada extends JPanel {
 
         // --- BLOQUE 3: REINICIAR ---
         btnReiniciar = crearBoton("REINICIAR", new Color(100, 100, 110));
-        btnInsertar.setActionCommand("Reiniciar");
+        btnReiniciar.setActionCommand("Reiniciar");
 
         // Ensamblar en una sola línea horizontal
         add(panelValidar);
