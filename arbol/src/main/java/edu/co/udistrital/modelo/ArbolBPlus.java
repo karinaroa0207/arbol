@@ -1,6 +1,7 @@
 package edu.co.udistrital.modelo;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Motor principal del Árbol B+.
@@ -274,7 +275,7 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
      * @param fin Límite superior del rango.
      * @return Lista dinámica con todos los registros encontrados en orden ascendente.
      */
-    public ArrayList<V> buscarRango(K inicio, K fin) {
+    public List<V> buscarRango(K inicio, K fin) {
         ArrayList<V> resultados = new ArrayList<>();
 
         if (inicio.compareTo(fin) > 0) {

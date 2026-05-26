@@ -6,10 +6,9 @@ import edu.co.udistrital.modelo.GeneradorDatos;
 import edu.co.udistrital.vista.ControlesEntrada;
 import edu.co.udistrital.vista.VisualizadorArbolCompleto;
 
-import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Clase puente entre la vista y el modelo.
@@ -114,7 +113,7 @@ public class ManejadorEventos implements ActionListener {
             int inicio = Integer.parseInt(inputVista.getRangoInicio().trim());
             int fin = Integer.parseInt(inputVista.getRangoFin().trim());
 
-            ArrayList<Boleta> resultados = motorArbol.buscarRango(inicio, fin);
+            List<Boleta> resultados = motorArbol.buscarRango(inicio, fin);
             if (resultados.isEmpty()) {
                 vMensajes.mostrarMensaje("No hay boletas en el rango [" + inicio + ", " + fin + "].");
                 return;
