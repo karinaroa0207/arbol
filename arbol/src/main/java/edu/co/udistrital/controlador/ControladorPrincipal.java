@@ -21,7 +21,8 @@ public class ControladorPrincipal {
         ManejadorEventos manejador = new ManejadorEventos(
             baseDatosBoletas, 
             vistaPrincipal.getControlesEntrada(), 
-            vistaPrincipal.getVisualizadorArbol()
+            vistaPrincipal.getVisualizadorArbol(),
+            vistaPrincipal
         );
         
         // ¡Ojo! Ya no necesitamos el addActionListener aquí porque 

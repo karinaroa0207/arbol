@@ -566,4 +566,12 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
      public NodoBPlus<K> getRaiz() {
         return this.raiz;
     }
+     
+    /**
+    * Vacía por completo la estructura del árbol, eliminando todos los 
+    * nodos y restableciendo el estado inicial.
+    */
+    public void reiniciar() {        
+        this.raiz = new NodoHoja<K, V>(orden);
+    }
 }

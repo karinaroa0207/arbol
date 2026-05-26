@@ -21,21 +21,19 @@ public class ManejadorEventos implements ActionListener {
     private ArbolBPlus<Integer, Boleta> motorArbol;
     private ControlesEntrada inputVista;
     private VisualizadorArbolCompleto outputVista;
+    private VisualizadorMensajes vMensajes;
 
     /**
      * Inyecta las dependencias principales y registra esta clase como listener
      * de todos los botones disponibles en la barra de controles.
      */
-    public ManejadorEventos(ArbolBPlus<Integer, Boleta> motor, ControlesEntrada input, VisualizadorArbolCompleto output) {
+    public ManejadorEventos(ArbolBPlus<Integer, Boleta> motor, ControlesEntrada input, VisualizadorArbolCompleto output, VisualizadorMensajes vMensajes) {
         this.motorArbol = motor;
         this.inputVista = input;
         this.outputVista = output;
+        this.vMensajes = vMensajes; 
         
-        inputVista.getBtnValidar().addActionListener(this);
-        inputVista.getBtnInsertar().addActionListener(this);
-        inputVista.getBtnEliminar().addActionListener(this);
-        inputVista.getBtnRango().addActionListener(this);
-        inputVista.getBtnReiniciar().addActionListener(this);
+        inputVista.agregarListenerBotones(this);
     }
 
     /**
@@ -43,18 +41,15 @@ public class ManejadorEventos implements ActionListener {
      */
     @Override
     public void actionPerformed(ActionEvent e) {
-        JButton botonClickeado = (JButton) e.getSource();
-        
-        if (botonClickeado == inputVista.getBtnInsertar()) {
-            procesarInsercion();
-        } else if (botonClickeado == inputVista.getBtnValidar()) {
-            procesarBusqueda();
-        } else if (botonClickeado == inputVista.getBtnEliminar()) {
-            procesarEliminacion();
-        } else if (botonClickeado == inputVista.getBtnRango()) {
-            procesarBusquedaRango();
-        } else if (botonClickeado == inputVista.getBtnReiniciar()) {
-            procesarReiniciar();
+        String botonClickeado = e.getActionCommand();
+        switch (botonClickeado) {
+            case "Insertar" -> procesarInsercion();
+            case "Validar" -> procesarBusqueda();
+            case "Reiniciar" -> procesarReiniciar();
+            case "Eliminar" -> procesarEliminacion();
+            case "Rango" -> procesarBusquedaRango();
+            default -> {
+            }
         }
     }
 
@@ -65,13 +60,13 @@ public class ManejadorEventos implements ActionListener {
 
             Boleta resultado = motorArbol.buscar(idBuscado);
             if (resultado != null) {
-                JOptionPane.showMessageDialog(null, "✓ BOLETA VÁLIDA: " + resultado);
+                vMensajes.mostrarMensaje("✓ BOLETA VÁLIDA: " + resultado.toString());
             } else {
-                JOptionPane.showMessageDialog(null, "X BOLETA INEXISTENTE O FALSA.", "Error de Validación", JOptionPane.ERROR_MESSAGE);
+                vMensajes.mostrarMensajeError("X BOLETA INEXISTENTE O FALSA.", "Error de Validación");
             }
 
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(null, "El ID debe ser un número entero.", "Error de Formato", JOptionPane.ERROR_MESSAGE);
+             vMensajes.mostrarMensajeError("El ID debe ser un número entero.", "Error de Formato");
         }
     }
 
@@ -84,7 +79,7 @@ public class ManejadorEventos implements ActionListener {
             boolean insertado = motorArbol.insertar(idNuevo, nuevaBoleta);
 
             if (!insertado) {
-                JOptionPane.showMessageDialog(null, "El ID " + idNuevo + " ya existe. En una base de datos de boletas, la clave debe ser única.", "Clave duplicada", JOptionPane.WARNING_MESSAGE);
+                vMensajes.mostrarMensajeWarning("El ID " + idNuevo + " ya existe. En una base de datos de boletas, la clave debe ser única.", "Clave duplicada");
                 return;
             }
             
@@ -92,7 +87,7 @@ public class ManejadorEventos implements ActionListener {
             outputVista.setArbol(motorArbol);
 
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(null, "El ID de inserción debe ser un número entero.", "Error de Formato", JOptionPane.ERROR_MESSAGE);
+            vMensajes.mostrarMensajeError("El ID de inserción debe ser un número entero.", "Error de Formato");
         }
     }
 
@@ -104,13 +99,13 @@ public class ManejadorEventos implements ActionListener {
             boolean eliminado = motorArbol.eliminar(idEliminar);
             if (eliminado) {
                 outputVista.setArbol(motorArbol);
-                JOptionPane.showMessageDialog(null, "Boleta con ID " + idEliminar + " eliminada y árbol rebalanceado.");
+                vMensajes.mostrarMensaje(null, "Boleta con ID " + idEliminar + " eliminada y árbol rebalanceado.");
             } else {
-                JOptionPane.showMessageDialog(null, "No existe una boleta con ID " + idEliminar + ".", "Eliminación no realizada", JOptionPane.WARNING_MESSAGE);
+                vMensajes.mostrarMensajeWarning("No existe una boleta con ID " + idEliminar + ".", "Eliminación no realizada");
             }
 
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(null, "El ID de eliminación debe ser un número entero.", "Error de Formato", JOptionPane.ERROR_MESSAGE);
+            vMensajes.mostrarMensajeError("El ID de eliminación debe ser un número entero.", "Error de Formato");
         }
     }
 
@@ -121,7 +116,7 @@ public class ManejadorEventos implements ActionListener {
 
             ArrayList<Boleta> resultados = motorArbol.buscarRango(inicio, fin);
             if (resultados.isEmpty()) {
-                JOptionPane.showMessageDialog(null, "No hay boletas en el rango [" + inicio + ", " + fin + "].");
+                vMensajes.mostrarMensaje("No hay boletas en el rango [" + inicio + ", " + fin + "].");
                 return;
             }
 
@@ -136,16 +131,16 @@ public class ManejadorEventos implements ActionListener {
                 mensaje.append(boleta).append("\n");
             }
 
-            JOptionPane.showMessageDialog(null, mensaje.toString(), "Resultado de rango", JOptionPane.INFORMATION_MESSAGE);
+            vMensajes.mostrarMensaje(mensaje.toString(), "Resultado de rango");
 
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(null, "Los límites del rango deben ser números enteros.", "Error de Formato", JOptionPane.ERROR_MESSAGE);
+            vMensajes.mostrarMensajeError("Los límites del rango deben ser números enteros.", "Error de Formato");
         }
     }
 
-    private void procesarReiniciar() {
-        this.motorArbol = new ArbolBPlus<>(4);
+    private void procesarReiniciar() {        
+        motorArbol.reiniciar();
         outputVista.setArbol(motorArbol);
-        JOptionPane.showMessageDialog(null, "Estructura del árbol reiniciada.");
+        vMensajes.mostrarMensaje("Estructura del árbol reiniciada.");
     }
 }

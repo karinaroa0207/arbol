@@ -1,9 +1,10 @@
 package edu.co.udistrital.vista;
 
+import edu.co.udistrital.controlador.VisualizadorMensajes;
 import javax.swing.*;
 import java.awt.*;
 
-public class VentanaPrincipal extends JFrame {
+public class VentanaPrincipal extends JFrame implements VisualizadorMensajes {
     
     private ControlesEntrada controlesEntrada;
     private VisualizadorArbolCompleto visualizadorArbol;
@@ -53,4 +54,77 @@ public class VentanaPrincipal extends JFrame {
 
     public ControlesEntrada getControlesEntrada() { return controlesEntrada; }
     public VisualizadorArbolCompleto getVisualizadorArbol() { return visualizadorArbol; }
+    
+     /**
+     * {@inheritDoc}
+     *
+     * El mensaje se renderiza en la pantalla mediante un cuadro de diálogo
+     * emergente modal ({@link JOptionPane}).
+     *
+     */
+    @Override
+    public void mostrarMensajeError(String mensaje, String titulo) {
+        JOptionPane.showMessageDialog(null, mensaje, titulo, JOptionPane.ERROR_MESSAGE);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * El mensaje se renderiza en la pantalla mediante un cuadro de diálogo
+     * emergente modal ({@link JOptionPane}).
+     *
+     */
+    @Override
+    public void mostrarMensajeError(String mensaje) {
+        mostrarMensajeError(mensaje, null);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * El mensaje se renderiza en la pantalla mediante un cuadro de diálogo
+     * emergente modal ({@link JOptionPane}).
+     *
+     */
+    @Override
+    public void mostrarMensaje(String mensaje, String titulo) {
+        JOptionPane.showMessageDialog(null, mensaje, titulo, JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    
+    /**
+     * {@inheritDoc}
+     *
+     * El mensaje se renderiza en la pantalla mediante un cuadro de diálogo
+     * emergente modal ({@link JOptionPane}).
+     *
+     */
+    @Override
+    public void mostrarMensaje(String mensaje) {
+        mostrarMensaje(mensaje, null);
+    }
+            
+    /**
+     * {@inheritDoc}
+     *
+     * El mensaje se renderiza en la pantalla mediante un cuadro de diálogo
+     * emergente modal ({@link JOptionPane}).
+     *
+     */
+    @Override
+    public void mostrarMensajeWarning(String mensaje, String titulo) {
+        JOptionPane.showMessageDialog(null, mensaje, titulo, JOptionPane.WARNING_MESSAGE);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * El mensaje se renderiza en la pantalla mediante un cuadro de diálogo
+     * emergente modal ({@link JOptionPane}).
+     *
+     */
+    @Override
+    public void mostrarMensajeWarning(String mensaje) {
+        mostrarMensajeWarning(mensaje, null);
+    }
 }

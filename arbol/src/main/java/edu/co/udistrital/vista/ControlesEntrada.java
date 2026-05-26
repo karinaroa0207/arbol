@@ -3,6 +3,7 @@ package edu.co.udistrital.vista;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.ActionListener;
 
 /**
  * Barra de herramientas superior (Toolbar).
@@ -33,6 +34,7 @@ public class ControlesEntrada extends JPanel {
         panelValidar.add(crearEtiqueta("ID Validar:"));
         txtIdValidar = crearCampoTexto();
         btnValidar = crearBoton("VALIDAR", NEON_FUCSIA);
+        btnValidar.setActionCommand("Validar");
         panelValidar.add(txtIdValidar);
         panelValidar.add(btnValidar);
 
@@ -40,6 +42,7 @@ public class ControlesEntrada extends JPanel {
         panelInsertar.add(crearEtiqueta("ID Insertar:"));
         txtIdInsertar = crearCampoTexto();
         btnInsertar = crearBoton("INSERTAR", NEON_AZUL);
+        btnInsertar.setActionCommand("Insertar");
         panelInsertar.add(txtIdInsertar);
         panelInsertar.add(btnInsertar);
 
@@ -47,6 +50,7 @@ public class ControlesEntrada extends JPanel {
         panelEliminar.add(crearEtiqueta("ID Eliminar:"));
         txtIdEliminar = crearCampoTexto();
         btnEliminar = crearBoton("ELIMINAR", new Color(255, 80, 80));
+        btnEliminar.setActionCommand("Eliminar");
         panelEliminar.add(txtIdEliminar);
         panelEliminar.add(btnEliminar);
 
@@ -55,12 +59,14 @@ public class ControlesEntrada extends JPanel {
         txtRangoInicio = crearCampoTexto();
         txtRangoFin = crearCampoTexto();
         btnRango = crearBoton("BUSCAR RANGO", new Color(177, 0, 255));
+        btnRango.setActionCommand("Rango");
         panelRango.add(txtRangoInicio);
         panelRango.add(crearEtiqueta("a"));
         panelRango.add(txtRangoFin);
         panelRango.add(btnRango);
 
         btnReiniciar = crearBoton("REINICIAR", new Color(100, 100, 110));
+        btnReiniciar.setActionCommand("Reiniciar");
 
         JPanel filaPrincipal = crearFilaControles();
         filaPrincipal.add(panelValidar);
@@ -139,4 +145,36 @@ public class ControlesEntrada extends JPanel {
     public JButton getBtnEliminar() { return btnEliminar; }
     public JButton getBtnRango() { return btnRango; }
     public JButton getBtnReiniciar() { return btnReiniciar; }
+    
+    public void agregarListenerBotones(ActionListener al) {
+        btnInsertar.addActionListener(al); 
+        btnReiniciar.addActionListener(al); 
+        btnValidar.addActionListener(al); 
+        btnEliminar.addActionListener(al);
+        btnRango.addActionListener(al); 
+    }
+    
+    public void limpiarCajaInsertar() {
+        txtIdInsertar.setText("");
+    }
+    /**
+     * Metodo para enfocar un boton
+     * 
+     * @param btn nombre del boton a enfocar
+     */
+    public void focusBtn(String btn) {
+        JButton b = null;
+        switch (btn) {
+            case "Insertar" -> b = btnInsertar;
+            case "Validar" -> b = btnValidar;
+            case "Reiniciar" -> b = btnReiniciar;
+            case "Eliminar" -> b = btnEliminar;
+            case "Rango" -> b = btnRango;
+            default -> {
+            }
+        }      
+        if(b != null) {
+            b.requestFocus();
+        }
+    }
 }
