@@ -575,4 +575,8 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
     public void reiniciar() {        
         this.raiz = new NodoHoja<K, V>(orden);
     }
+
+    public int getOrden() {
+        return orden;
+    }        
 }

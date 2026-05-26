@@ -1,7 +1,9 @@
 package edu.co.udistrital.controlador;
 
 import edu.co.udistrital.modelo.ArbolBPlus;
+import edu.co.udistrital.modelo.ArbolBPlusMapper;
 import edu.co.udistrital.modelo.Boleta;
+import edu.co.udistrital.modelo.BoletaMapper;
 import edu.co.udistrital.modelo.GeneradorDatos;
 import edu.co.udistrital.vista.ControlesEntrada;
 import edu.co.udistrital.vista.VisualizadorArbolCompleto;
@@ -83,7 +85,7 @@ public class ManejadorEventos implements ActionListener {
             }
             
             inputVista.getBtnInsertar().requestFocus();
-            outputVista.setArbol(motorArbol);
+            outputVista.setArbol(ArbolBPlusMapper.toDTO(motorArbol, BoletaMapper::toDTO));
 
         } catch (NumberFormatException ex) {
             vMensajes.mostrarMensajeError("El ID de inserción debe ser un número entero.", "Error de Formato");
@@ -97,7 +99,7 @@ public class ManejadorEventos implements ActionListener {
 
             boolean eliminado = motorArbol.eliminar(idEliminar);
             if (eliminado) {
-                outputVista.setArbol(motorArbol);
+                outputVista.setArbol(ArbolBPlusMapper.toDTO(motorArbol, BoletaMapper::toDTO));
                 vMensajes.mostrarMensaje(null, "Boleta con ID " + idEliminar + " eliminada y árbol rebalanceado.");
             } else {
                 vMensajes.mostrarMensajeWarning("No existe una boleta con ID " + idEliminar + ".", "Eliminación no realizada");
@@ -139,7 +141,7 @@ public class ManejadorEventos implements ActionListener {
 
     private void procesarReiniciar() {        
         motorArbol.reiniciar();
-        outputVista.setArbol(motorArbol);
+        outputVista.setArbol(ArbolBPlusMapper.toDTO(motorArbol, BoletaMapper::toDTO));
         vMensajes.mostrarMensaje("Estructura del árbol reiniciada.");
     }
 }
