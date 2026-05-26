@@ -49,6 +49,7 @@ public class ManejadorEventos implements ActionListener {
             case "Reiniciar" -> procesarReiniciar();
             case "Eliminar" -> procesarEliminacion();
             case "Rango" -> procesarBusquedaRango();
+            case "Orden" -> procesarCambioOrden();
             default -> {
             }
         }
@@ -61,7 +62,7 @@ public class ManejadorEventos implements ActionListener {
 
             Boleta resultado = motorArbol.buscar(idBuscado);
             if (resultado != null) {
-                vMensajes.mostrarMensaje("✓ BOLETA VÁLIDA: " + resultado.toString());
+                vMensajes.mostrarBoleta(BoletaMapper.toDTO(resultado));
             } else {
                 vMensajes.mostrarMensajeError("X BOLETA INEXISTENTE O FALSA.", "Error de Validación");
             }
@@ -140,8 +141,15 @@ public class ManejadorEventos implements ActionListener {
     }
 
     private void procesarReiniciar() {        
-        motorArbol.reiniciar();
+        motorArbol = new ArbolBPlus<>(inputVista.getOrdenSeleccionado());
         outputVista.setArbol(ArbolBPlusMapper.toDTO(motorArbol, BoletaMapper::toDTO));
-        vMensajes.mostrarMensaje("Estructura del árbol reiniciada.");
+        vMensajes.mostrarMensaje("Estructura del árbol reiniciada con orden " + motorArbol.getOrden() + ".");
+    }
+
+    private void procesarCambioOrden() {
+        int ordenSeleccionado = inputVista.getOrdenSeleccionado();
+        motorArbol = new ArbolBPlus<>(ordenSeleccionado);
+        outputVista.setArbol(ArbolBPlusMapper.toDTO(motorArbol, BoletaMapper::toDTO));
+        vMensajes.mostrarMensaje("Se creó un nuevo Árbol B+ de orden " + ordenSeleccionado + ".");
     }
 }

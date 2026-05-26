@@ -11,7 +11,7 @@ public class ControladorPrincipal {
 
     public ControladorPrincipal(VentanaPrincipal vista) {
         this.vistaPrincipal = vista;
-        this.baseDatosBoletas = new ArbolBPlus<>(4); 
+        this.baseDatosBoletas = new ArbolBPlus<>(vista.getControlesEntrada().getOrdenSeleccionado()); 
         
         configurarEventos();
     }

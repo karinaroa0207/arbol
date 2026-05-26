@@ -1,6 +1,7 @@
 package edu.co.udistrital.vista;
 
 import edu.co.udistrital.controlador.VisualizadorMensajes;
+import edu.co.udistrital.modelo.BoletaDTO;
 import javax.swing.*;
 import java.awt.*;
 
@@ -8,6 +9,7 @@ public class VentanaPrincipal extends JFrame implements VisualizadorMensajes {
     
     private ControlesEntrada controlesEntrada;
     private VisualizadorArbolCompleto visualizadorArbol;
+    private JScrollPane scrollArbol;
 
     public VentanaPrincipal() {
         setTitle("QueBoleta - Sistema de Indexación B+");
@@ -24,6 +26,7 @@ public class VentanaPrincipal extends JFrame implements VisualizadorMensajes {
         // Inicializar los sub-paneles
         controlesEntrada = new ControlesEntrada();
         visualizadorArbol = new VisualizadorArbolCompleto();
+        scrollArbol = crearScrollArbol(visualizadorArbol);
 
         // Construir el título
         JPanel panelTitulo = new JPanel();
@@ -49,7 +52,24 @@ public class VentanaPrincipal extends JFrame implements VisualizadorMensajes {
         // Pegamos el panel superior estrictamente al NORTE (Arriba)
         add(panelSuperior, BorderLayout.NORTH);
         // Le damos todo el espacio sobrante del CENTRO al dibujo del árbol
-        add(visualizadorArbol, BorderLayout.CENTER); 
+        add(scrollArbol, BorderLayout.CENTER); 
+    }
+
+    private JScrollPane crearScrollArbol(VisualizadorArbolCompleto visualizador) {
+        JScrollPane scroll = new JScrollPane(
+                visualizador,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
+        );
+
+        scroll.setBorder(null);
+        scroll.getViewport().setBackground(new Color(18, 18, 22));
+        scroll.setBackground(new Color(18, 18, 22));
+        scroll.getHorizontalScrollBar().setUnitIncrement(24);
+        scroll.getVerticalScrollBar().setUnitIncrement(24);
+        scroll.getHorizontalScrollBar().setBlockIncrement(180);
+        scroll.getVerticalScrollBar().setBlockIncrement(100);
+        return scroll;
     }
 
     public ControlesEntrada getControlesEntrada() { return controlesEntrada; }
@@ -126,5 +146,21 @@ public class VentanaPrincipal extends JFrame implements VisualizadorMensajes {
     @Override
     public void mostrarMensajeWarning(String mensaje) {
         mostrarMensajeWarning(mensaje, null);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * La boleta se muestra mediante un panel especializado para separar la
+     * presentación del dato de negocio de los mensajes de texto simples.
+     */
+    @Override
+    public void mostrarBoleta(BoletaDTO boleta) {
+        JOptionPane.showMessageDialog(
+                null,
+                new PanelBoletaDetalle(boleta),
+                "Boleta encontrada",
+                JOptionPane.PLAIN_MESSAGE
+        );
     }
 }

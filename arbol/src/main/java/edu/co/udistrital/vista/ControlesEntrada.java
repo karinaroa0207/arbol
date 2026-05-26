@@ -12,7 +12,8 @@ import java.awt.event.ActionListener;
  */
 public class ControlesEntrada extends JPanel {
     private JTextField txtIdValidar, txtIdInsertar, txtIdEliminar, txtRangoInicio, txtRangoFin;
-    private JButton btnValidar, btnInsertar, btnEliminar, btnRango, btnReiniciar;
+    private JSpinner spnOrden;
+    private JButton btnValidar, btnInsertar, btnEliminar, btnRango, btnOrden, btnReiniciar;
 
     private final Color FONDO_OSCURO = new Color(18, 18, 22);
     private final Color NEON_AZUL = new Color(0, 229, 255);
@@ -65,6 +66,14 @@ public class ControlesEntrada extends JPanel {
         panelRango.add(txtRangoFin);
         panelRango.add(btnRango);
 
+        JPanel panelOrden = crearBloqueCompacto();
+        panelOrden.add(crearEtiqueta("Orden:"));
+        spnOrden = crearSelectorOrden();
+        btnOrden = crearBoton("APLICAR", new Color(0, 180, 150));
+        btnOrden.setActionCommand("Orden");
+        panelOrden.add(spnOrden);
+        panelOrden.add(btnOrden);
+
         btnReiniciar = crearBoton("REINICIAR", new Color(100, 100, 110));
         btnReiniciar.setActionCommand("Reiniciar");
 
@@ -80,6 +89,8 @@ public class ControlesEntrada extends JPanel {
 
         JPanel filaAcciones = crearFilaControles();
         filaAcciones.add(btnReiniciar);
+        filaAcciones.add(crearSeparador());
+        filaAcciones.add(panelOrden);
 
         add(filaPrincipal);
         add(filaSecundaria);
@@ -118,6 +129,22 @@ public class ControlesEntrada extends JPanel {
         return txt;
     }
 
+    private JSpinner crearSelectorOrden() {
+        JSpinner spinner = new JSpinner(new SpinnerNumberModel(4, 3, 10, 1));
+        spinner.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        spinner.setPreferredSize(new Dimension(54, 28));
+        spinner.setBorder(BorderFactory.createLineBorder(NEON_AZUL, 1, true));
+        JComponent editor = spinner.getEditor();
+        if (editor instanceof JSpinner.DefaultEditor defaultEditor) {
+            JTextField txt = defaultEditor.getTextField();
+            txt.setHorizontalAlignment(JTextField.CENTER);
+            txt.setBackground(new Color(28, 28, 34));
+            txt.setForeground(Color.WHITE);
+            txt.setCaretColor(NEON_AZUL);
+        }
+        return spinner;
+    }
+
     private JButton crearBoton(String texto, Color color) {
         JButton btn = new JButton(texto);
         btn.setBackground(color);
@@ -140,10 +167,12 @@ public class ControlesEntrada extends JPanel {
     public String getIdEliminar() { return txtIdEliminar.getText(); }
     public String getRangoInicio() { return txtRangoInicio.getText(); }
     public String getRangoFin() { return txtRangoFin.getText(); }
+    public int getOrdenSeleccionado() { return (Integer) spnOrden.getValue(); }
     public JButton getBtnValidar() { return btnValidar; }
     public JButton getBtnInsertar() { return btnInsertar; }
     public JButton getBtnEliminar() { return btnEliminar; }
     public JButton getBtnRango() { return btnRango; }
+    public JButton getBtnOrden() { return btnOrden; }
     public JButton getBtnReiniciar() { return btnReiniciar; }
     
     public void agregarListenerBotones(ActionListener al) {
@@ -152,6 +181,7 @@ public class ControlesEntrada extends JPanel {
         btnValidar.addActionListener(al); 
         btnEliminar.addActionListener(al);
         btnRango.addActionListener(al); 
+        btnOrden.addActionListener(al);
     }
     
     public void limpiarCajaInsertar() {
@@ -170,6 +200,7 @@ public class ControlesEntrada extends JPanel {
             case "Reiniciar" -> b = btnReiniciar;
             case "Eliminar" -> b = btnEliminar;
             case "Rango" -> b = btnRango;
+            case "Orden" -> b = btnOrden;
             default -> {
             }
         }      
