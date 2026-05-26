@@ -12,6 +12,7 @@ public class VentanaPrincipal extends JFrame {
         setTitle("QueBoleta - Sistema de Indexación B+");
         // Hacemos la ventana un poco más ancha para que los árboles grandes quepan mejor
         setSize(1000, 800); 
+        setMinimumSize(new Dimension(760, 600));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         

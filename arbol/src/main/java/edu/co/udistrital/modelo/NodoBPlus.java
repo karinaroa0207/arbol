@@ -37,6 +37,15 @@ public abstract class NodoBPlus<K extends Comparable<K>> {
     public boolean estaLleno() {
         return numClaves == orden - 1;
     }
+
+    /**
+     * Expone cuántas claves reales tiene el nodo.
+     * Es útil para que la vista dibuje únicamente los hijos ocupados y no toda
+     * la capacidad física del arreglo.
+     */
+    public int getNumClaves() {
+        return numClaves;
+    }
     
     /**
      * Convierte las claves del nodo a un formato de texto limpio

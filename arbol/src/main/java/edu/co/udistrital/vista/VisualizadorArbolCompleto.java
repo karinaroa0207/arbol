@@ -98,7 +98,7 @@ public class VisualizadorArbolCompleto extends JPanel {
             NodoInterno<Integer> interno = (NodoInterno<Integer>) nodo;
             
             // Calcular el ancho total que ocuparán los hijos en el nivel inferior
-            int numHijos = interno.getHijos().length;
+            int numHijos = interno.getNumClaves() + 1;
             int anchoTotalHijos = (numHijos * ANCHO_NODO) + ((numHijos - 1) * ESPACIO_HORIZONTAL);
             int xInicialHijos = x - anchoTotalHijos / 2 + ANCHO_NODO / 2;
             int yHijos = y + ESPACIO_VERTICAL;

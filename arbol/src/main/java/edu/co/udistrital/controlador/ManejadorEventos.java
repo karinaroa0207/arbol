@@ -9,11 +9,12 @@ import edu.co.udistrital.vista.VisualizadorArbolCompleto;
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 
 /**
- * ESTA ES LA CLASE PUENTE. 
- * Su responsabilidad es escuchar los clics de ambos botones ("VALIDAR" e "INSERTAR"),
- * leer los datos, ir a buscarlo o insertarlo en el Modelo (Árbol) y mandar a redibujar la Vista.
+ * Clase puente entre la vista y el modelo.
+ * Escucha los botones de la interfaz, convierte los textos ingresados a claves
+ * numéricas y delega las operaciones reales al Árbol B+.
  */
 public class ManejadorEventos implements ActionListener {
     
@@ -21,20 +22,24 @@ public class ManejadorEventos implements ActionListener {
     private ControlesEntrada inputVista;
     private VisualizadorArbolCompleto outputVista;
 
-    // Inyección de dependencias a través del constructor
+    /**
+     * Inyecta las dependencias principales y registra esta clase como listener
+     * de todos los botones disponibles en la barra de controles.
+     */
     public ManejadorEventos(ArbolBPlus<Integer, Boleta> motor, ControlesEntrada input, VisualizadorArbolCompleto output) {
         this.motorArbol = motor;
         this.inputVista = input;
         this.outputVista = output;
         
-        // Cablear los botones a esta misma clase que implementa ActionListener
         inputVista.getBtnValidar().addActionListener(this);
         inputVista.getBtnInsertar().addActionListener(this);
+        inputVista.getBtnEliminar().addActionListener(this);
+        inputVista.getBtnRango().addActionListener(this);
         inputVista.getBtnReiniciar().addActionListener(this);
     }
 
     /**
-     * Este método es disparado exclusivamente por el evento del clic en cualquier botón.
+     * Despacha cada clic hacia la operación específica solicitada por el usuario.
      */
     @Override
     public void actionPerformed(ActionEvent e) {
@@ -44,6 +49,10 @@ public class ManejadorEventos implements ActionListener {
             procesarInsercion();
         } else if (botonClickeado == inputVista.getBtnValidar()) {
             procesarBusqueda();
+        } else if (botonClickeado == inputVista.getBtnEliminar()) {
+            procesarEliminacion();
+        } else if (botonClickeado == inputVista.getBtnRango()) {
+            procesarBusquedaRango();
         } else if (botonClickeado == inputVista.getBtnReiniciar()) {
             procesarReiniciar();
         }
@@ -51,15 +60,12 @@ public class ManejadorEventos implements ActionListener {
 
     private void procesarBusqueda() {
         try {
-            // 1. Extraer dato de la vista
             String textoIngresado = inputVista.getIdValidar();
             int idBuscado = Integer.parseInt(textoIngresado.trim());
 
-            // 2. Conectar con el modelo (Buscar O(log n))
             Boleta resultado = motorArbol.buscar(idBuscado);
             if (resultado != null) {
-                // TODO: Implementar resaltado del nodo encontrado en el visualizador
-                JOptionPane.showMessageDialog(null, "✓ BOLETA VÁLIDA: " + resultado.toString());
+                JOptionPane.showMessageDialog(null, "✓ BOLETA VÁLIDA: " + resultado);
             } else {
                 JOptionPane.showMessageDialog(null, "X BOLETA INEXISTENTE O FALSA.", "Error de Validación", JOptionPane.ERROR_MESSAGE);
             }
@@ -71,20 +77,18 @@ public class ManejadorEventos implements ActionListener {
 
     private void procesarInsercion() {
         try {
-            // 1. Extraer ID de la vista
             String textoIngresado = inputVista.getIdInsertar();
             int idNuevo = Integer.parseInt(textoIngresado.trim());
 
-            // 2. Usar nuestra nueva clase para generar los datos de forma automática y flexible
             Boleta nuevaBoleta = GeneradorDatos.generarBoletaAleatoria(idNuevo);
+            boolean insertado = motorArbol.insertar(idNuevo, nuevaBoleta);
+
+            if (!insertado) {
+                JOptionPane.showMessageDialog(null, "El ID " + idNuevo + " ya existe. En una base de datos de boletas, la clave debe ser única.", "Clave duplicada", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
             
-            // 3. Inserción matemática O(log n)
-            motorArbol.insertar(idNuevo, nuevaBoleta);
-            
-            // 4. Limpiar el campo de texto automáticamente para facilitar la siguiente inserción
-            inputVista.getBtnInsertar().requestFocus(); // Quita el foco del texto
-            
-            // 5. Redibujar árbol
+            inputVista.getBtnInsertar().requestFocus();
             outputVista.setArbol(motorArbol);
 
         } catch (NumberFormatException ex) {
@@ -92,9 +96,55 @@ public class ManejadorEventos implements ActionListener {
         }
     }
 
+    private void procesarEliminacion() {
+        try {
+            String textoIngresado = inputVista.getIdEliminar();
+            int idEliminar = Integer.parseInt(textoIngresado.trim());
+
+            boolean eliminado = motorArbol.eliminar(idEliminar);
+            if (eliminado) {
+                outputVista.setArbol(motorArbol);
+                JOptionPane.showMessageDialog(null, "Boleta con ID " + idEliminar + " eliminada y árbol rebalanceado.");
+            } else {
+                JOptionPane.showMessageDialog(null, "No existe una boleta con ID " + idEliminar + ".", "Eliminación no realizada", JOptionPane.WARNING_MESSAGE);
+            }
+
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(null, "El ID de eliminación debe ser un número entero.", "Error de Formato", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void procesarBusquedaRango() {
+        try {
+            int inicio = Integer.parseInt(inputVista.getRangoInicio().trim());
+            int fin = Integer.parseInt(inputVista.getRangoFin().trim());
+
+            ArrayList<Boleta> resultados = motorArbol.buscarRango(inicio, fin);
+            if (resultados.isEmpty()) {
+                JOptionPane.showMessageDialog(null, "No hay boletas en el rango [" + inicio + ", " + fin + "].");
+                return;
+            }
+
+            StringBuilder mensaje = new StringBuilder();
+            mensaje.append("Boletas encontradas en el rango [")
+                   .append(inicio)
+                   .append(", ")
+                   .append(fin)
+                   .append("]:\n\n");
+
+            for (Boleta boleta : resultados) {
+                mensaje.append(boleta).append("\n");
+            }
+
+            JOptionPane.showMessageDialog(null, mensaje.toString(), "Resultado de rango", JOptionPane.INFORMATION_MESSAGE);
+
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(null, "Los límites del rango deben ser números enteros.", "Error de Formato", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     private void procesarReiniciar() {
-        // Vaciamos el árbol y redibujamos
-        this.motorArbol = new ArbolBPlus<>(4); 
+        this.motorArbol = new ArbolBPlus<>(4);
         outputVista.setArbol(motorArbol);
         JOptionPane.showMessageDialog(null, "Estructura del árbol reiniciada.");
     }

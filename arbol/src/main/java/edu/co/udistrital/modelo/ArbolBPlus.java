@@ -1,5 +1,7 @@
 package edu.co.udistrital.modelo;
 
+import java.util.ArrayList;
+
 /**
  * Motor principal del Árbol B+.
  * Estructura de datos de búsqueda multidireccional y autobalanceada.
@@ -36,9 +38,14 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
      * @param clave El identificador único para ordenar el dato (ej. ID de la boleta).
      * @param valor El objeto real a almacenar en memoria.
      */
-    public void insertar(K clave, V valor) {
+    public boolean insertar(K clave, V valor) {
+        if (buscar(clave) != null) {
+            return false;
+        }
+
         NodoHoja<K, V> hojaObjetivo = encontrarHoja(clave);
         insertarEnHoja(hojaObjetivo, clave, valor);
+        return true;
     }
 
     /**
@@ -257,7 +264,305 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
         
         return null; // Ausencia de datos
     }
-    
+    /**
+     * Recupera todos los registros cuyas claves estén dentro de un intervalo cerrado.
+     * Esta operación aprovecha la característica principal del Árbol B+: las hojas
+     * están conectadas entre sí como una lista enlazada, por lo que después de
+     * encontrar la primera hoja solo se avanza secuencialmente.
+     *
+     * @param inicio Límite inferior del rango.
+     * @param fin Límite superior del rango.
+     * @return Lista dinámica con todos los registros encontrados en orden ascendente.
+     */
+    public ArrayList<V> buscarRango(K inicio, K fin) {
+        ArrayList<V> resultados = new ArrayList<>();
+
+        if (inicio.compareTo(fin) > 0) {
+            return resultados;
+        }
+
+        NodoHoja<K, V> hojaActual = encontrarHoja(inicio);
+
+        while (hojaActual != null) {
+            for (int i = 0; i < hojaActual.numClaves; i++) {
+                K claveActual = hojaActual.claves[i];
+
+                if (claveActual.compareTo(fin) > 0) {
+                    return resultados;
+                }
+
+                if (claveActual.compareTo(inicio) >= 0) {
+                    resultados.add(hojaActual.getValores()[i]);
+                }
+            }
+
+            hojaActual = hojaActual.getSiguiente();
+        }
+
+        return resultados;
+    }
+
+    /**
+     * Elimina un registro por su clave y repara la estructura si algún nodo queda
+     * por debajo del mínimo permitido. El proceso sigue la regla clásica de B+:
+     * primero intenta redistribuir con hermanos y, si no es posible, fusiona nodos.
+     *
+     * @param clave Clave única del registro a eliminar.
+     * @return true si la clave existía y fue eliminada; false si no estaba en el árbol.
+     */
+    public boolean eliminar(K clave) {
+        NodoHoja<K, V> hoja = encontrarHoja(clave);
+        int posicion = buscarIndiceClave(hoja, clave);
+
+        if (posicion == -1) {
+            return false;
+        }
+
+        eliminarDeHoja(hoja, posicion);
+
+        if (hoja == raiz) {
+            return true;
+        }
+
+        if (hoja.numClaves >= minimoClavesHoja()) {
+            actualizarSeparadoresDespuesDeCambio(hoja);
+            return true;
+        }
+
+        rebalancearHoja(hoja);
+        return true;
+    }
+
+    private int buscarIndiceClave(NodoHoja<K, V> hoja, K clave) {
+        for (int i = 0; i < hoja.numClaves; i++) {
+            if (hoja.claves[i].compareTo(clave) == 0) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private void eliminarDeHoja(NodoHoja<K, V> hoja, int posicion) {
+        for (int i = posicion; i < hoja.numClaves - 1; i++) {
+            hoja.claves[i] = hoja.claves[i + 1];
+            hoja.getValores()[i] = hoja.getValores()[i + 1];
+        }
+
+        hoja.claves[hoja.numClaves - 1] = null;
+        hoja.getValores()[hoja.numClaves - 1] = null;
+        hoja.numClaves--;
+    }
+
+    private int minimoClavesHoja() {
+        return (int) Math.ceil((orden - 1) / 2.0);
+    }
+
+    private int minimoClavesInterno() {
+        return (int) Math.ceil(orden / 2.0) - 1;
+    }
+
+    private int indiceHijo(NodoInterno<K> padre, NodoBPlus<K> hijoBuscado) {
+        for (int i = 0; i <= padre.numClaves; i++) {
+            if (padre.getHijos()[i] == hijoBuscado) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void rebalancearHoja(NodoHoja<K, V> hoja) {
+        NodoInterno<K> padre = hoja.padre;
+        int indice = indiceHijo(padre, hoja);
+        NodoHoja<K, V> izquierda = indice > 0 ? (NodoHoja<K, V>) padre.getHijos()[indice - 1] : null;
+        NodoHoja<K, V> derecha = indice < padre.numClaves ? (NodoHoja<K, V>) padre.getHijos()[indice + 1] : null;
+
+        if (izquierda != null && izquierda.numClaves > minimoClavesHoja()) {
+            desplazarHojaDerecha(hoja);
+            hoja.claves[0] = izquierda.claves[izquierda.numClaves - 1];
+            hoja.getValores()[0] = izquierda.getValores()[izquierda.numClaves - 1];
+            izquierda.claves[izquierda.numClaves - 1] = null;
+            izquierda.getValores()[izquierda.numClaves - 1] = null;
+            izquierda.numClaves--;
+            hoja.numClaves++;
+            padre.claves[indice - 1] = hoja.claves[0];
+            return;
+        }
+
+        if (derecha != null && derecha.numClaves > minimoClavesHoja()) {
+            hoja.claves[hoja.numClaves] = derecha.claves[0];
+            hoja.getValores()[hoja.numClaves] = derecha.getValores()[0];
+            hoja.numClaves++;
+            eliminarDeHoja(derecha, 0);
+            padre.claves[indice] = derecha.claves[0];
+            return;
+        }
+
+        if (izquierda != null) {
+            fusionarHojas(izquierda, hoja);
+            eliminarEntradaPadre(padre, indice - 1, indice);
+        } else if (derecha != null) {
+            fusionarHojas(hoja, derecha);
+            eliminarEntradaPadre(padre, indice, indice + 1);
+        }
+    }
+
+    private void desplazarHojaDerecha(NodoHoja<K, V> hoja) {
+        for (int i = hoja.numClaves; i > 0; i--) {
+            hoja.claves[i] = hoja.claves[i - 1];
+            hoja.getValores()[i] = hoja.getValores()[i - 1];
+        }
+    }
+
+    private void fusionarHojas(NodoHoja<K, V> izquierda, NodoHoja<K, V> derecha) {
+        for (int i = 0; i < derecha.numClaves; i++) {
+            izquierda.claves[izquierda.numClaves] = derecha.claves[i];
+            izquierda.getValores()[izquierda.numClaves] = derecha.getValores()[i];
+            izquierda.numClaves++;
+        }
+
+        izquierda.setSiguiente(derecha.getSiguiente());
+    }
+
+    private void eliminarEntradaPadre(NodoInterno<K> padre, int indiceClave, int indiceHijo) {
+        for (int i = indiceClave; i < padre.numClaves - 1; i++) {
+            padre.claves[i] = padre.claves[i + 1];
+        }
+        padre.claves[padre.numClaves - 1] = null;
+
+        for (int i = indiceHijo; i < padre.numClaves; i++) {
+            padre.getHijos()[i] = padre.getHijos()[i + 1];
+        }
+        padre.getHijos()[padre.numClaves] = null;
+        padre.numClaves--;
+
+        actualizarSeparadoresDespuesDeCambio(padre);
+        rebalancearInterno(padre);
+    }
+
+    private void rebalancearInterno(NodoInterno<K> nodo) {
+        if (nodo == raiz) {
+            if (nodo.numClaves == 0) {
+                raiz = nodo.getHijos()[0];
+                if (raiz != null) {
+                    raiz.padre = null;
+                } else {
+                    raiz = new NodoHoja<K, V>(orden);
+                }
+            }
+            return;
+        }
+
+        if (nodo.numClaves >= minimoClavesInterno()) {
+            return;
+        }
+
+        NodoInterno<K> padre = nodo.padre;
+        int indice = indiceHijo(padre, nodo);
+        NodoInterno<K> izquierda = indice > 0 ? (NodoInterno<K>) padre.getHijos()[indice - 1] : null;
+        NodoInterno<K> derecha = indice < padre.numClaves ? (NodoInterno<K>) padre.getHijos()[indice + 1] : null;
+
+        if (izquierda != null && izquierda.numClaves > minimoClavesInterno()) {
+            prestarDesdeInternoIzquierdo(nodo, izquierda, padre, indice);
+            return;
+        }
+
+        if (derecha != null && derecha.numClaves > minimoClavesInterno()) {
+            prestarDesdeInternoDerecho(nodo, derecha, padre, indice);
+            return;
+        }
+
+        if (izquierda != null) {
+            fusionarInternos(izquierda, nodo, padre.claves[indice - 1]);
+            eliminarEntradaPadre(padre, indice - 1, indice);
+        } else if (derecha != null) {
+            fusionarInternos(nodo, derecha, padre.claves[indice]);
+            eliminarEntradaPadre(padre, indice, indice + 1);
+        }
+    }
+
+    private void prestarDesdeInternoIzquierdo(NodoInterno<K> nodo, NodoInterno<K> izquierda, NodoInterno<K> padre, int indice) {
+        for (int i = nodo.numClaves; i > 0; i--) {
+            nodo.claves[i] = nodo.claves[i - 1];
+        }
+        for (int i = nodo.numClaves + 1; i > 0; i--) {
+            nodo.getHijos()[i] = nodo.getHijos()[i - 1];
+        }
+
+        nodo.claves[0] = padre.claves[indice - 1];
+        nodo.getHijos()[0] = izquierda.getHijos()[izquierda.numClaves];
+        nodo.getHijos()[0].padre = nodo;
+        nodo.numClaves++;
+
+        padre.claves[indice - 1] = izquierda.claves[izquierda.numClaves - 1];
+        izquierda.claves[izquierda.numClaves - 1] = null;
+        izquierda.getHijos()[izquierda.numClaves] = null;
+        izquierda.numClaves--;
+    }
+
+    private void prestarDesdeInternoDerecho(NodoInterno<K> nodo, NodoInterno<K> derecha, NodoInterno<K> padre, int indice) {
+        nodo.claves[nodo.numClaves] = padre.claves[indice];
+        nodo.getHijos()[nodo.numClaves + 1] = derecha.getHijos()[0];
+        nodo.getHijos()[nodo.numClaves + 1].padre = nodo;
+        nodo.numClaves++;
+
+        padre.claves[indice] = derecha.claves[0];
+
+        for (int i = 0; i < derecha.numClaves - 1; i++) {
+            derecha.claves[i] = derecha.claves[i + 1];
+        }
+        for (int i = 0; i < derecha.numClaves; i++) {
+            derecha.getHijos()[i] = derecha.getHijos()[i + 1];
+        }
+
+        derecha.claves[derecha.numClaves - 1] = null;
+        derecha.getHijos()[derecha.numClaves] = null;
+        derecha.numClaves--;
+    }
+
+    private void fusionarInternos(NodoInterno<K> izquierda, NodoInterno<K> derecha, K separadorPadre) {
+        int clavesInicialesIzquierda = izquierda.numClaves;
+        izquierda.claves[izquierda.numClaves] = separadorPadre;
+        izquierda.numClaves++;
+
+        for (int i = 0; i < derecha.numClaves; i++) {
+            izquierda.claves[izquierda.numClaves] = derecha.claves[i];
+            izquierda.numClaves++;
+        }
+
+        int posicionPrimerHijoDerecho = clavesInicialesIzquierda + 1;
+        for (int i = 0; i <= derecha.numClaves; i++) {
+            izquierda.getHijos()[posicionPrimerHijoDerecho + i] = derecha.getHijos()[i];
+            izquierda.getHijos()[posicionPrimerHijoDerecho + i].padre = izquierda;
+        }
+    }
+
+    private void actualizarSeparadoresDespuesDeCambio(NodoBPlus<K> nodo) {
+        if (nodo.padre == null || nodo.numClaves == 0) {
+            return;
+        }
+
+        NodoInterno<K> padre = nodo.padre;
+        int indice = indiceHijo(padre, nodo);
+
+        if (indice > 0) {
+            padre.claves[indice - 1] = obtenerPrimeraClave(nodo);
+        } else {
+            actualizarSeparadoresDespuesDeCambio(padre);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private K obtenerPrimeraClave(NodoBPlus<K> nodo) {
+        NodoBPlus<K> actual = nodo;
+
+        while (actual instanceof NodoInterno) {
+            actual = ((NodoInterno<K>) actual).getHijos()[0];
+        }
+
+        return actual.numClaves > 0 ? actual.claves[0] : null;
+    }
+
      public NodoBPlus<K> getRaiz() {
         return this.raiz;
     }
