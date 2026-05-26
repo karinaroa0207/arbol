@@ -3,6 +3,7 @@ package edu.co.udistrital.modelo;
 /**
  * Nodos de enrutamiento. Nunca guardan datos reales (V), 
  * solo guardan claves (K) para comparar y punteros hacia los nodos hijos.
+ *@param <K> Tipo de clave (debe ser Comparable)
  */
 public class NodoInterno<K extends Comparable<K>> extends NodoBPlus<K> {
     

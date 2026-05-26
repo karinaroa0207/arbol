@@ -11,49 +11,87 @@ import java.util.List;
 /**
  * Componente gráfico estilizado encargado de renderizar de forma recursiva
  * cualquier estructura de Árbol B+ a partir de un DTO topológico.
+ * 
+ * @author Karina Roa
+ * @version 1.0
+ * @see ArbolBPlusDTO
+ * @see NodoDTO
  */
 public class VisualizadorArbolCompleto extends JPanel {
     
-    // Paleta de colores premium/oscuro para la interfaz gráfica
+    /** Color de fondo para las tarjetas de los nodos. */
     private final Color FONDO_TARJETA = new Color(25, 25, 30, 220);
+    
+    /** Color neón azul para bordes de nodos internos y líneas de conexión. */
     private final Color NEON_AZUL = new Color(0, 229, 255);
+    
+    /** Color neón fucsia para bordes de nodos hoja y enlaces entre hojas. */
     private final Color NEON_FUCSIA = new Color(255, 0, 127);
+    
+    /** Color neón púrpura para destacar el nodo raíz. */
     private final Color NEON_PURPURA = new Color(177, 0, 255);
+    
+    /** Color para texto claro dentro de los nodos. */
     private final Color TEXTO_CLARO = new Color(230, 230, 230);
 
+    /** DTO del árbol que se va a visualizar. */
     private ArbolBPlusDTO<Integer, BoletaDTO> dtoArbol;
 
-    // Dimensiones de diseño para los componentes del árbol
+    /** Ancho mínimo que debe tener un nodo. */
     private final int ANCHO_MINIMO_NODO = 180;
+    
+    /** Alto fijo de cada nodo. */
     private final int ALTO_NODO = 70;
+    
+    /** Padding horizontal adicional para el texto del nodo. */
     private final int PADDING_HORIZONTAL_NODO = 42;
+    
+    /** Ancho aproximado de un carácter en píxeles para cálculos de texto. */
     private final int ANCHO_CARACTER_APROXIMADO = 14;
+    
+    /** Espacio horizontal entre nodos hermanos. */
     private final int ESPACIO_HORIZONTAL = 60;
+    
+    /** Espacio vertical entre niveles del árbol. */
     private final int ESPACIO_VERTICAL = 100;
+    
+    /** Margen horizontal del panel. */
     private final int MARGEN_HORIZONTAL = 40;
+    
+    /** Margen vertical del panel. */
     private final int MARGEN_VERTICAL = 80;
 
+    /**
+     * Constructor del visualizador.
+     * Configura el panel como transparente para permitir fondos personalizados.
+     */
     public VisualizadorArbolCompleto() {
-        setOpaque(false); // Permite ver fondos personalizados del contenedor principal
+        setOpaque(false);
     }
 
     /**
      * Recibe el snapshot estructurado (DTO) y gatilla el redibujado del panel.
+     * 
+     * @param dto DTO del árbol a visualizar
      */
     public void setArbol(ArbolBPlusDTO<Integer, BoletaDTO> dto) {
         this.dtoArbol = dto;
         actualizarTamanoPreferido();
         revalidate();
-        repaint(); // Invoca asíncronamente a paintComponent
+        repaint();
     }
 
+    /**
+     * Dibuja el árbol completo en el panel.
+     * 
+     * @param g Objeto Graphics para dibujar
+     */
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         if (dtoArbol == null || dtoArbol.getRaiz() == null) return; 
 
         Graphics2D g2d = (Graphics2D) g;
-        // Activamos Antialiasing para que las líneas y textos no se vean pixelados
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
@@ -69,6 +107,9 @@ public class VisualizadorArbolCompleto extends JPanel {
     /**
      * Calcula cuánto espacio horizontal requiere un nodo incluyendo todos sus
      * descendientes. Esto evita que subárboles vecinos se monten visualmente.
+     * 
+     * @param nodo Nodo a evaluar
+     * @return Ancho total necesario para el subárbol
      */
     private int calcularAnchoSubarbol(NodoDTO<Integer, BoletaDTO> nodo) {
         if (nodo.esHoja() || nodo.getHijos().isEmpty()) {
@@ -87,6 +128,9 @@ public class VisualizadorArbolCompleto extends JPanel {
     /**
      * Calcula el ancho visual mínimo que necesita el nodo para que sus claves
      * no se salgan de la caja, incluso con órdenes altos.
+     * 
+     * @param nodo Nodo a evaluar
+     * @return Ancho mínimo del nodo
      */
     private int calcularAnchoNodo(NodoDTO<Integer, BoletaDTO> nodo) {
         int anchoTexto = nodo.toStringClaves().length() * ANCHO_CARACTER_APROXIMADO;
@@ -108,6 +152,12 @@ public class VisualizadorArbolCompleto extends JPanel {
         setPreferredSize(new Dimension(ancho, alto));
     }
 
+    /**
+     * Calcula la profundidad máxima del árbol desde el nodo dado.
+     * 
+     * @param nodo Nodo a evaluar
+     * @return Profundidad del subárbol
+     */
     private int calcularProfundidad(NodoDTO<Integer, BoletaDTO> nodo) {
         if (nodo.esHoja() || nodo.getHijos().isEmpty()) {
             return 0;
@@ -123,6 +173,14 @@ public class VisualizadorArbolCompleto extends JPanel {
 
     /**
      * Método recursivo encargado de pintar nodos, calcular posiciones de hijos y trazar enlaces.
+     * 
+     * @param g2d Contexto gráfico 2D
+     * @param nodo Nodo a dibujar
+     * @param x Coordenada X del centro del nodo
+     * @param xInicioSubarbol Coordenada X de inicio del subárbol
+     * @param y Coordenada Y del nodo
+     * @param nivel Nivel del árbol (1 = raíz)
+     * @param hojas Lista acumuladora de hojas para luego dibujar enlaces
      */
     private void dibujarNodoRecursivo(
             Graphics2D g2d,
@@ -134,24 +192,19 @@ public class VisualizadorArbolCompleto extends JPanel {
             List<HojaDibujada> hojas) {
         int anchoNodo = calcularAnchoNodo(nodo);
 
-        // 1. Dibujar el contenedor base del nodo (Caja con esquinas redondeadas)
         g2d.setColor(FONDO_TARJETA);
         g2d.fillRoundRect(x - anchoNodo / 2, y, anchoNodo, ALTO_NODO, 20, 20);
         
-        // Bordes decorativos sutiles
         g2d.setColor(new Color(255, 255, 255, 40));
         g2d.drawRoundRect(x - anchoNodo / 2, y, anchoNodo, ALTO_NODO, 20, 20);
 
-        // 2. Renderizar el texto de las claves formateadas internamente en el DTO
         g2d.setColor(TEXTO_CLARO);
         g2d.setFont(new Font("Monospaced", Font.BOLD, 22));
         String clavesString = nodo.toStringClaves(); 
         FontMetrics fm = g2d.getFontMetrics();
         g2d.drawString(clavesString, x - fm.stringWidth(clavesString) / 2, y + ALTO_NODO / 2 + fm.getAscent() / 2 - 2);
 
-        // 3. Diferenciar visualmente el comportamiento según el tipo de nodo (Hoja o Interno)
         if (!nodo.esHoja()) {
-            // Nodos Internos: Color Azul Neón
             g2d.setColor(NEON_AZUL);
             g2d.drawRoundRect(x - anchoNodo / 2, y, anchoNodo, ALTO_NODO, 20, 20);
 
@@ -159,26 +212,22 @@ public class VisualizadorArbolCompleto extends JPanel {
             int cursorX = xInicioSubarbol;
 
             for (int i = 0; i < nodo.getHijos().size(); i++) {
-                NodoDTO<Integer, BoletaDTO> hijoDTO = nodo.getHijos().get(i); // Uso directo de la clase separada
+                NodoDTO<Integer, BoletaDTO> hijoDTO = nodo.getHijos().get(i);
                 int anchoHijo = calcularAnchoSubarbol(hijoDTO);
                 int xHijo = cursorX + anchoHijo / 2;
                 
-                // Trazar línea de unión jerárquica hacia el nodo hijo
                 g2d.setColor(NEON_AZUL);
                 g2d.drawLine(x, y + ALTO_NODO, xHijo, yHijos);
                 
-                // Llamada recursiva para procesar el subárbol del hijo
                 dibujarNodoRecursivo(g2d, hijoDTO, xHijo, cursorX, yHijos, nivel + 1, hojas);
                 cursorX += anchoHijo + ESPACIO_HORIZONTAL;
             }
         } else {
-            // Nodos Hoja: Color Fucsia Neón
             g2d.setColor(NEON_FUCSIA);
             g2d.drawRoundRect(x - anchoNodo / 2, y, anchoNodo, ALTO_NODO, 20, 20);
             hojas.add(new HojaDibujada(x, y + ALTO_NODO / 2, anchoNodo));
         }
         
-        // Destacar estéticamente la raíz principal con un borde Púrpura Neón adicional
         if (nivel == 1) {
             g2d.setColor(NEON_PURPURA);
             g2d.drawRoundRect(x - anchoNodo / 2, y, anchoNodo, ALTO_NODO, 20, 20);
@@ -188,6 +237,9 @@ public class VisualizadorArbolCompleto extends JPanel {
     /**
      * Dibuja la lista enlazada de hojas usando las posiciones reales calculadas
      * por el layout del árbol.
+     * 
+     * @param g2d Contexto gráfico 2D
+     * @param hojas Lista de hojas con sus posiciones calculadas
      */
     private void dibujarEnlacesEntreHojas(Graphics2D g2d, List<HojaDibujada> hojas) {
         g2d.setColor(NEON_FUCSIA);
@@ -207,11 +259,25 @@ public class VisualizadorArbolCompleto extends JPanel {
         }
     }
 
+    /**
+     * Clase auxiliar para almacenar la posición de una hoja durante el dibujo.
+     */
     private static class HojaDibujada {
+        /** Coordenada X del centro de la hoja. */
         private final int xCentro;
+        
+        /** Coordenada Y del centro de la hoja. */
         private final int yCentro;
+        
+        /** Ancho de la hoja. */
         private final int ancho;
 
+        /**
+         * Constructor de la hoja dibujada.
+         * @param xCentro Coordenada X del centro
+         * @param yCentro Coordenada Y del centro
+         * @param ancho Ancho de la hoja
+         */
         private HojaDibujada(int xCentro, int yCentro, int ancho) {
             this.xCentro = xCentro;
             this.yCentro = yCentro;

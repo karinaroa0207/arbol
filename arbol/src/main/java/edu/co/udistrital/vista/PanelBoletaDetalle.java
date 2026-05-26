@@ -9,14 +9,29 @@ import java.awt.*;
  * Panel especializado en presentar una boleta ya convertida a DTO.
  * Mantiene la visualización del dato de negocio fuera del controlador y evita
  * que la interfaz dependa del formato textual de {@code toString()}.
+ * 
+ * @author Karina Roa
+ * @version 1.0
  */
 public class PanelBoletaDetalle extends JPanel {
 
+    /** Color de fondo oscuro para el panel. */
     private final Color FONDO_OSCURO = new Color(25, 25, 30);
+    
+    /** Color neón azul para títulos y acentos. */
     private final Color NEON_AZUL = new Color(0, 229, 255);
+    
+    /** Color para texto claro principal. */
     private final Color TEXTO_CLARO = new Color(230, 230, 230);
+    
+    /** Color para texto secundario o datos ausentes. */
     private final Color TEXTO_SECUNDARIO = new Color(175, 175, 185);
 
+    /**
+     * Construye el panel de detalle con los datos de una boleta.
+     * 
+     * @param boleta DTO con la información de la boleta a mostrar
+     */
     public PanelBoletaDetalle(BoletaDTO boleta) {
         setLayout(new GridBagLayout());
         setBackground(FONDO_OSCURO);
@@ -25,6 +40,11 @@ public class PanelBoletaDetalle extends JPanel {
         agregarContenido(boleta);
     }
 
+    /**
+     * Agrega el contenido visual del panel: título y líneas de información.
+     * 
+     * @param boleta DTO con los datos a mostrar (ID, evento, zona)
+     */
     private void agregarContenido(BoletaDTO boleta) {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
@@ -47,6 +67,14 @@ public class PanelBoletaDetalle extends JPanel {
         add(crearLinea("Zona", boleta.getZona()), gbc);
     }
 
+    /**
+     * Crea una línea de texto con formato etiqueta: valor.
+     * Si el valor está vacío o es null, muestra "Sin dato" y usa color secundario.
+     * 
+     * @param etiqueta Descripción del campo (ej. "ID", "Evento", "Zona")
+     * @param valor Valor a mostrar junto a la etiqueta
+     * @return JLabel configurada con el texto y estilos correspondientes
+     */
     private JLabel crearLinea(String etiqueta, String valor) {
         JLabel linea = new JLabel(etiqueta + ": " + valor);
         linea.setForeground(TEXTO_CLARO);

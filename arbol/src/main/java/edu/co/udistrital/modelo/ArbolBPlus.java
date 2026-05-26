@@ -38,6 +38,7 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
      *
      * @param clave El identificador único para ordenar el dato (ej. ID de la boleta).
      * @param valor El objeto real a almacenar en memoria.
+     * @return true si la inserción fue exitosa, false si la clave ya existía
      */
     public boolean insertar(K clave, V valor) {
         if (buscar(clave) != null) {
@@ -342,7 +343,14 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
         }
         return -1;
     }
-
+    /**
+    * Elimina físicamente un elemento de un nodo hoja en la posición especificada.
+    * Realiza un desplazamiento hacia la izquierda de los elementos posteriores
+    * para mantener la compacidad del arreglo.
+    *
+    * @param hoja El nodo hoja que contiene el elemento a eliminar.
+    * @param posicion El índice dentro del arreglo donde se encuentra la clave.
+    */
     private void eliminarDeHoja(NodoHoja<K, V> hoja, int posicion) {
         for (int i = posicion; i < hoja.numClaves - 1; i++) {
             hoja.claves[i] = hoja.claves[i + 1];
@@ -353,14 +361,33 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
         hoja.getValores()[hoja.numClaves - 1] = null;
         hoja.numClaves--;
     }
-
+    /**
+     * Calcula el número mínimo de claves que debe tener un nodo hoja
+     * para considerarse válido (sin underflow).
+     * Fórmula: ⌈(orden - 1) / 2⌉
+     *
+     * @return La cantidad mínima de claves permitida en un nodo hoja.
+     */
     private int minimoClavesHoja() {
         return (int) Math.ceil((orden - 1) / 2.0);
     }
-
+    /**
+    * Calcula el número mínimo de claves que debe tener un nodo interno
+    * para considerarse válido (sin underflow).
+    * Fórmula: ⌈orden / 2⌉ - 1
+    *
+    * @return La cantidad mínima de claves permitida en un nodo interno.
+    */
     private int minimoClavesInterno() {
         return (int) Math.ceil(orden / 2.0) - 1;
     }
+     /**
+     * Encuentra el índice de un nodo hijo dentro del arreglo de hijos de su padre.
+     *
+     * @param padre El nodo padre que contiene el arreglo de hijos.
+     * @param hijoBuscado El nodo hijo cuya posición se desea conocer.
+     * @return El índice del hijo en el arreglo, -1 si no se encuentra.
+     */
 
     private int indiceHijo(NodoInterno<K> padre, NodoBPlus<K> hijoBuscado) {
         for (int i = 0; i <= padre.numClaves; i++) {
@@ -370,7 +397,13 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
         }
         return -1;
     }
-
+    /**
+     * Rebalancea un nodo hoja que ha caído por debajo del mínimo de claves permitido.
+     * Primero intenta redistribuir tomando prestada una clave de un hermano (izquierdo o derecho).
+     * Si no es posible, fusiona el nodo actual con su hermano.
+     *
+     * @param hoja El nodo hoja que necesita rebalanceo por underflow.
+     */
     @SuppressWarnings("unchecked")
     private void rebalancearHoja(NodoHoja<K, V> hoja) {
         NodoInterno<K> padre = hoja.padre;
@@ -407,7 +440,13 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
             eliminarEntradaPadre(padre, indice, indice + 1);
         }
     }
-
+    /**
+     * Desplaza todas las claves y valores de una hoja una posición a la derecha.
+     * Utilizado para crear espacio en la posición 0 cuando se toma prestada
+     * una clave del hermano izquierdo.
+     *
+     * @param hoja La hoja cuyos elementos serán desplazados.
+     */
     private void desplazarHojaDerecha(NodoHoja<K, V> hoja) {
         for (int i = hoja.numClaves; i > 0; i--) {
             hoja.claves[i] = hoja.claves[i - 1];
@@ -415,6 +454,14 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
         }
     }
 
+    /**
+    * Fusiona dos nodos hoja adyacentes, moviendo todas las claves y valores
+    * de la hoja derecha hacia la hoja izquierda. Actualiza el puntero siguiente
+    * para mantener la lista enlazada.
+    *
+    * @param izquierda Nodo hoja que absorbe los elementos (se conserva).
+    * @param derecha Nodo hoja que será absorbido y posteriormente eliminado.
+    */
     private void fusionarHojas(NodoHoja<K, V> izquierda, NodoHoja<K, V> derecha) {
         for (int i = 0; i < derecha.numClaves; i++) {
             izquierda.claves[izquierda.numClaves] = derecha.claves[i];
@@ -424,6 +471,14 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
 
         izquierda.setSiguiente(derecha.getSiguiente());
     }
+    /**
+    * Elimina una entrada (clave y su hijo asociado) de un nodo interno.
+    * Después de la eliminación, verifica si el nodo padre necesita rebalanceo.
+    *
+    * @param padre El nodo interno del cual se eliminará la entrada.
+    * @param indiceClave Índice de la clave a eliminar en el arreglo de claves.
+    * @param indiceHijo Índice del hijo asociado a eliminar en el arreglo de hijos.
+    */
 
     private void eliminarEntradaPadre(NodoInterno<K> padre, int indiceClave, int indiceHijo) {
         for (int i = indiceClave; i < padre.numClaves - 1; i++) {
@@ -537,7 +592,13 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
             izquierda.getHijos()[posicionPrimerHijoDerecho + i].padre = izquierda;
         }
     }
-
+    /**
+     * Actualiza las claves separadoras en los nodos ancestros después de una operación
+     * que modificó la primera clave del nodo actual. Esto es necesario porque la primera
+     * clave de un hijo sirve como separador en el padre.
+     *
+     * @param nodo El nodo cuyo cambio en su primera clave debe propagarse hacia arriba.
+     */
     private void actualizarSeparadoresDespuesDeCambio(NodoBPlus<K> nodo) {
         if (nodo.padre == null || nodo.numClaves == 0) {
             return;
@@ -552,7 +613,13 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
             actualizarSeparadoresDespuesDeCambio(padre);
         }
     }
-
+    /**
+     * Obtiene la primera clave del nodo más a la izquierda del subárbol.
+     * Desciende recursivamente por los hijos izquierdos hasta alcanzar una hoja.
+     *
+     * @param nodo Nodo de partida para la búsqueda de la clave más izquierda.
+     * @return La primera clave de la hoja más izquierda, o null si el nodo está vacío.
+     */
     @SuppressWarnings("unchecked")
     private K obtenerPrimeraClave(NodoBPlus<K> nodo) {
         NodoBPlus<K> actual = nodo;
@@ -563,7 +630,11 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
 
         return actual.numClaves > 0 ? actual.claves[0] : null;
     }
-
+    /**
+     * Obtiene el nodo raíz actual del árbol.
+     *
+     * @return El nodo raíz. Puede ser una hoja (árbol vacío) o un nodo interno.
+     */
      public NodoBPlus<K> getRaiz() {
         return this.raiz;
     }
@@ -575,7 +646,11 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
     public void reiniciar() {        
         this.raiz = new NodoHoja<K, V>(orden);
     }
-
+    /**
+     * Obtiene el grado (orden) del árbol.
+     *
+     * @return El valor del orden definido en la construcción del árbol.
+     */
     public int getOrden() {
         return orden;
     }        

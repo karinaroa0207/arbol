@@ -9,17 +9,37 @@ import java.awt.event.ActionListener;
  * Barra de herramientas superior (Toolbar).
  * Centraliza las operaciones básicas del Árbol B+: validación por clave,
  * inserción única, eliminación y búsqueda por rangos.
+ * 
+ * @author Karina Roa
+ * @version 1.0
  */
 public class ControlesEntrada extends JPanel {
+    
+    /** Campos de texto para IDs de validación, inserción, eliminación y rango. */
     private JTextField txtIdValidar, txtIdInsertar, txtIdEliminar, txtRangoInicio, txtRangoFin;
+    
+    /** Spinner para seleccionar el orden (grado) del árbol. */
     private JSpinner spnOrden;
+    
+    /** Botones de acción: Validar, Insertar, Eliminar, Rango, Orden, Reiniciar. */
     private JButton btnValidar, btnInsertar, btnEliminar, btnRango, btnOrden, btnReiniciar;
 
+    /** Color de fondo oscuro para la interfaz. */
     private final Color FONDO_OSCURO = new Color(18, 18, 22);
+    
+    /** Color neón azul para botones y acentos. */
     private final Color NEON_AZUL = new Color(0, 229, 255);
+    
+    /** Color neón fucsia para elementos de advertencia o peligro. */
     private final Color NEON_FUCSIA = new Color(255, 0, 127);
+    
+    /** Color para texto claro sobre fondo oscuro. */
     private final Color TEXTO_CLARO = new Color(230, 230, 230);
 
+    /**
+     * Construye el panel de controles de entrada.
+     * Configura el fondo, layout, tamaño y componentes visuales.
+     */
     public ControlesEntrada() {
         setBackground(FONDO_OSCURO);
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -30,6 +50,7 @@ public class ControlesEntrada extends JPanel {
         inicializarComponentes();
     }
 
+    /** Inicializa y organiza todos los componentes visuales del panel. */
     private void inicializarComponentes() {
         JPanel panelValidar = crearBloqueCompacto();
         panelValidar.add(crearEtiqueta("ID Validar:"));
@@ -97,6 +118,10 @@ public class ControlesEntrada extends JPanel {
         add(filaAcciones);
     }
 
+    /**
+     * Crea una fila horizontal para organizar controles.
+     * @return Panel con FlowLayout centrado
+     */
     private JPanel crearFilaControles() {
         JPanel fila = new JPanel(new FlowLayout(FlowLayout.CENTER, 16, 3));
         fila.setOpaque(false);
@@ -105,12 +130,21 @@ public class ControlesEntrada extends JPanel {
         return fila;
     }
 
+    /**
+     * Crea un bloque compacto para agrupar controles relacionados.
+     * @return Panel con FlowLayout izquierdo sin márgenes
+     */
     private JPanel crearBloqueCompacto() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         panel.setOpaque(false);
         return panel;
     }
 
+    /**
+     * Crea una etiqueta con estilo visual oscuro.
+     * @param texto Texto a mostrar
+     * @return JLabel configurada
+     */
     private JLabel crearEtiqueta(String texto) {
         JLabel lbl = new JLabel(texto);
         lbl.setForeground(TEXTO_CLARO);
@@ -118,6 +152,10 @@ public class ControlesEntrada extends JPanel {
         return lbl;
     }
 
+    /**
+     * Crea un campo de texto con estilo visual neon.
+     * @return JTextField configurado
+     */
     private JTextField crearCampoTexto() {
         JTextField txt = new JTextField(6);
         txt.setBackground(new Color(28, 28, 34));
@@ -129,6 +167,10 @@ public class ControlesEntrada extends JPanel {
         return txt;
     }
 
+    /**
+     * Crea un selector (spinner) para elegir el orden del árbol.
+     * @return JSpinner configurado con valores de 3 a 10
+     */
     private JSpinner crearSelectorOrden() {
         JSpinner spinner = new JSpinner(new SpinnerNumberModel(4, 3, 10, 1));
         spinner.setFont(new Font("Segoe UI", Font.BOLD, 13));
@@ -145,6 +187,12 @@ public class ControlesEntrada extends JPanel {
         return spinner;
     }
 
+    /**
+     * Crea un botón con estilo personalizado.
+     * @param texto Texto del botón
+     * @param color Color de fondo
+     * @return JButton configurado
+     */
     private JButton crearBoton(String texto, Color color) {
         JButton btn = new JButton(texto);
         btn.setBackground(color);
@@ -156,25 +204,56 @@ public class ControlesEntrada extends JPanel {
         return btn;
     }
 
+    /**
+     * Crea un separador visual entre bloques de controles.
+     * @return JLabel con texto "|"
+     */
     private JLabel crearSeparador() {
         JLabel separador = new JLabel(" | ");
         separador.setForeground(Color.GRAY);
         return separador;
     }
 
+    /** @return ID ingresado para validación */
     public String getIdValidar() { return txtIdValidar.getText(); }
+    
+    /** @return ID ingresado para inserción */
     public String getIdInsertar() { return txtIdInsertar.getText(); }
+    
+    /** @return ID ingresado para eliminación */
     public String getIdEliminar() { return txtIdEliminar.getText(); }
+    
+    /** @return Valor inicial del rango de búsqueda */
     public String getRangoInicio() { return txtRangoInicio.getText(); }
+    
+    /** @return Valor final del rango de búsqueda */
     public String getRangoFin() { return txtRangoFin.getText(); }
+    
+    /** @return Orden seleccionado en el spinner */
     public int getOrdenSeleccionado() { return (Integer) spnOrden.getValue(); }
+    
+    /** @return Botón Validar */
     public JButton getBtnValidar() { return btnValidar; }
+    
+    /** @return Botón Insertar */
     public JButton getBtnInsertar() { return btnInsertar; }
+    
+    /** @return Botón Eliminar */
     public JButton getBtnEliminar() { return btnEliminar; }
+    
+    /** @return Botón Búsqueda por Rango */
     public JButton getBtnRango() { return btnRango; }
+    
+    /** @return Botón Aplicar Orden */
     public JButton getBtnOrden() { return btnOrden; }
+    
+    /** @return Botón Reiniciar */
     public JButton getBtnReiniciar() { return btnReiniciar; }
     
+    /**
+     * Agrega un ActionListener a todos los botones del panel.
+     * @param al Listener a registrar en cada botón
+     */
     public void agregarListenerBotones(ActionListener al) {
         btnInsertar.addActionListener(al); 
         btnReiniciar.addActionListener(al); 
@@ -184,13 +263,14 @@ public class ControlesEntrada extends JPanel {
         btnOrden.addActionListener(al);
     }
     
+    /** Limpia el contenido del campo de texto de inserción. */
     public void limpiarCajaInsertar() {
         txtIdInsertar.setText("");
     }
+    
     /**
-     * Metodo para enfocar un boton
-     * 
-     * @param btn nombre del boton a enfocar
+     * Enfoca (solicita el foco) a un botón específico por su nombre.
+     * @param btn Nombre del botón a enfocar ("Insertar", "Validar", "Reiniciar", "Eliminar", "Rango", "Orden")
      */
     public void focusBtn(String btn) {
         JButton b = null;

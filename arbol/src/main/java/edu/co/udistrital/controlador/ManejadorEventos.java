@@ -54,7 +54,17 @@ public class ManejadorEventos implements ActionListener {
             }
         }
     }
-
+    /**
+     * Procesa la búsqueda de una boleta por su ID.
+     * 
+     * <p>Flujo:</p>
+     * <ol>
+     *   <li>Obtiene el ID ingresado por el usuario</li>
+     *   <li>Valida que sea un número entero</li>
+     *   <li>Busca en el árbol B+ usando ese ID como clave</li>
+     *   <li>Muestra la boleta si existe, o un error si no se encuentra</li>
+     * </ol>
+     */
     private void procesarBusqueda() {
         try {
             String textoIngresado = inputVista.getIdValidar();
@@ -71,7 +81,18 @@ public class ManejadorEventos implements ActionListener {
              vMensajes.mostrarMensajeError("El ID debe ser un número entero.", "Error de Formato");
         }
     }
-
+    /**
+     * Procesa la inserción de una nueva boleta en el árbol.
+     * 
+     * <p>Flujo:</p>
+     * <ol>
+     *   <li>Obtiene el ID ingresado por el usuario</li>
+     *   <li>Genera datos aleatorios (evento y zona) usando GeneradorDatos</li>
+     *   <li>Inserta el par (ID, Boleta) en el árbol B+</li>
+     *   <li>Si el ID ya existe, muestra advertencia y no inserta</li>
+     *   <li>Actualiza la visualización gráfica del árbol</li>
+     * </ol>
+     */
     private void procesarInsercion() {
         try {
             String textoIngresado = inputVista.getIdInsertar();
@@ -92,7 +113,17 @@ public class ManejadorEventos implements ActionListener {
             vMensajes.mostrarMensajeError("El ID de inserción debe ser un número entero.", "Error de Formato");
         }
     }
-
+    /**
+     * Procesa la eliminación de una boleta del árbol por su ID.
+     * 
+     * <p>Flujo:</p>
+     * <ol>
+     *   <li>Obtiene el ID a eliminar ingresado por el usuario</li>
+     *   <li>Ejecuta la operación de eliminación en el árbol B+</li>
+     *   <li>Si la clave existía, rebalancea automáticamente y actualiza la vista</li>
+     *   <li>Si no existía, muestra advertencia informativa</li>
+     * </ol>
+     */
     private void procesarEliminacion() {
         try {
             String textoIngresado = inputVista.getIdEliminar();
@@ -110,7 +141,20 @@ public class ManejadorEventos implements ActionListener {
             vMensajes.mostrarMensajeError("El ID de eliminación debe ser un número entero.", "Error de Formato");
         }
     }
-
+    /**
+     * Procesa la búsqueda por rango de IDs (consulta por intervalo).
+     * 
+     * <p>Flujo:</p>
+     * <ol>
+     *   <li>Obtiene los límites inferior (inicio) y superior (fin)</li>
+     *   <li>Valida que ambos sean números enteros</li>
+     *   <li>Ejecuta la operación buscarRango en el árbol B+</li>
+     *   <li>Muestra todas las boletas cuyos IDs están en el intervalo cerrado [inicio, fin]</li>
+     * </ol>
+     * 
+     * <p>Esta operación aprovecha la lista enlazada de hojas del árbol B+,
+     * por lo que es eficiente incluso para rangos grandes.</p>
+     */
     private void procesarBusquedaRango() {
         try {
             int inicio = Integer.parseInt(inputVista.getRangoInicio().trim());
@@ -139,13 +183,21 @@ public class ManejadorEventos implements ActionListener {
             vMensajes.mostrarMensajeError("Los límites del rango deben ser números enteros.", "Error de Formato");
         }
     }
-
+    /**
+     * Reinicia completamente el árbol B+ manteniendo el orden actual.
+     * Se crea una nueva instancia vacía del árbol y se actualiza la vista.
+     * Las boletas previamente almacenadas se pierden permanentemente.
+     */
     private void procesarReiniciar() {        
         motorArbol = new ArbolBPlus<>(inputVista.getOrdenSeleccionado());
         outputVista.setArbol(ArbolBPlusMapper.toDTO(motorArbol, BoletaMapper::toDTO));
         vMensajes.mostrarMensaje("Estructura del árbol reiniciada con orden " + motorArbol.getOrden() + ".");
     }
-
+    /**
+     * Crea un nuevo árbol B+ con un orden diferente seleccionado por el usuario.
+     * Esta operación reemplaza completamente la estructura existente,
+     * iniciando con un árbol vacío del nuevo orden.
+     */
     private void procesarCambioOrden() {
         int ordenSeleccionado = inputVista.getOrdenSeleccionado();
         motorArbol = new ArbolBPlus<>(ordenSeleccionado);

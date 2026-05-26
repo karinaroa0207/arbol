@@ -7,27 +7,52 @@ import java.util.function.Function;
 /**
  * Clase especialista en transformar la estructura interna y privada del Árbol B+
  * en una representación abstracta, limpia y segura (DTO) para la vista.
+ * 
+ * @author Karina Roa
+ * @version 1.0
  */
 public class ArbolBPlusMapper {
 
     /**
+     * Constructor privado para evitar instanciación (clase utilitaria).
+     */
+    private ArbolBPlusMapper() {
+        // Constructor vacío y privado
+    }
+
+    /**
      * Toma un árbol genérico de backend y lo traduce a un DTO de topología global.
+     * @param <K> Tipo de clave
+     * @param <V> Tipo de valor original
+     * @param <D> Tipo de valor transformado
+     * @param arbol El árbol B+ a convertir
+     * @param transformadorDatos Función para transformar V en D
+     * @return DTO del árbol
      */
     public static <K extends Comparable<K>, V, D> ArbolBPlusDTO<K, D> toDTO(ArbolBPlus<K, V> arbol, Function<V, D> transformadorDatos) {
         if (arbol == null || arbol.getRaiz() == null) {
             return new ArbolBPlusDTO<>(null, arbol != null ? arbol.getOrden() : 4);
         }
         
-        // El método ya retorna el NodoDTO independiente directamente
         NodoDTO<K, D> raizDTO = convertirNodoADTO(arbol.getRaiz(), arbol.getOrden(), transformadorDatos);
         return new ArbolBPlusDTO<>(raizDTO, arbol.getOrden());
     }
 
+    /**
+     * Convierte recursivamente un nodo físico del árbol en un NodoDTO para la vista.
+     * 
+     * @param <K> Tipo de clave
+     * @param <V> Tipo de valor original
+     * @param <D> Tipo de valor transformado
+     * @param nodoReal Nodo físico del árbol B+
+     * @param orden Grado del árbol
+     * @param transformadorDatos Función para transformar V en D
+     * @return DTO del nodo
+     */
     @SuppressWarnings("unchecked")
     private static <K extends Comparable<K>, V, D> NodoDTO<K, D> convertirNodoADTO(
             NodoBPlus<K> nodoReal, int orden, Function<V, D> transformadorDatos) {
         
-        // 1. Extraer las claves del nodo original como Strings para que la UI las dibuje sin problemas
         List<String> listaClaves = new ArrayList<>();
         for (int i = 0; i < nodoReal.numClaves; i++) {
             listaClaves.add(nodoReal.claves[i].toString());
@@ -39,9 +64,7 @@ public class ArbolBPlusMapper {
         boolean esHoja = nodoReal instanceof NodoHoja;
         boolean tieneSiguiente = false;
 
-        // 2. Procesar la estructura de forma recursiva según el tipo de nodo físico
         if (!esHoja) {
-            // Nodo Interno (Enrutamiento): Mapeamos sus hijos hacia abajo
             NodoInterno<K> interno = (NodoInterno<K>) nodoReal;
             int numHijos = interno.numClaves + 1;
             for (int i = 0; i < numHijos; i++) {
@@ -50,20 +73,17 @@ public class ArbolBPlusMapper {
                 }
             }
         } else {
-            // Nodo Hoja (Datos): Extraemos los valores de negocio y evaluamos enlaces hermanos
             NodoHoja<K, V> hoja = (NodoHoja<K, V>) nodoReal;
             tieneSiguiente = (hoja.getSiguiente() != null);
             
             for (int i = 0; i < hoja.numClaves; i++) {
                 if (hoja.getValores()[i] != null) {
-                    // Invocamos el transformador externo (ej. BoletaMapper::toDTO)
                     D dtoTransformado = transformadorDatos.apply(hoja.getValores()[i]);
                     listaDTOSValores.add(dtoTransformado); 
                 }
             }
         }
 
-        // 3. Retornamos la nueva instancia de la clase NodoDTO independiente
         return new NodoDTO<>(listaClaves, listaHijosDTO, listaDTOSValores, esHoja, tieneSiguiente);
     }
 }
