@@ -1,5 +1,6 @@
 package edu.co.udistrital.vista;
 
+import edu.co.udistrital.controlador.VisualizadorBoleta;
 import edu.co.udistrital.controlador.VisualizadorMensajes;
 import edu.co.udistrital.modelo.BoletaDTO;
 import javax.swing.*;
@@ -8,6 +9,7 @@ import java.awt.*;
 /**
  * Ventana principal de la aplicación QueBoleta.
  * Implementa la interfaz VisualizadorMensajes para mostrar diálogos al usuario.
+ * Implementa la interfaz VisualizadorBoleta para mostrar boleta.
  * Utiliza BorderLayout para organizar los componentes: título + controles arriba,
  * y el visualizador del árbol en el centro.
  * 
@@ -17,7 +19,7 @@ import java.awt.*;
  * @see ControlesEntrada
  * @see VisualizadorArbolCompleto
  */
-public class VentanaPrincipal extends JFrame implements VisualizadorMensajes {
+public class VentanaPrincipal extends JFrame implements VisualizadorMensajes, VisualizadorBoleta {
     
     /** Panel con los controles de entrada (botones, campos de texto, spinner). */
     private ControlesEntrada controlesEntrada;
@@ -182,5 +184,15 @@ public class VentanaPrincipal extends JFrame implements VisualizadorMensajes {
                 "Boleta encontrada",
                 JOptionPane.PLAIN_MESSAGE
         );
+    }
+    
+    /**
+     * Obtiene el orden del árbol seleccionado actualmente en la interfaz de usuario.
+     * 
+     * @return El número entero que representa el orden configurado para el Árbol B+.
+     */
+    
+    public int getOrdenSeleccionado() {
+        return controlesEntrada.getOrdenSeleccionado();
     }
 }

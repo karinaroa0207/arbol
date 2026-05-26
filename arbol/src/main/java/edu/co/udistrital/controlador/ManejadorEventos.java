@@ -23,16 +23,23 @@ public class ManejadorEventos implements ActionListener {
     private ControlesEntrada inputVista;
     private VisualizadorArbolCompleto outputVista;
     private VisualizadorMensajes vMensajes;
+    private VisualizadorBoleta vBoleta;
 
     /**
      * Inyecta las dependencias principales y registra esta clase como listener
      * de todos los botones disponibles en la barra de controles.
+     * 
+     * @param input Componente de la interfaz encargado de capturar las entradas del usuario y botones.
+     * @param output Componente visual que se encarga de renderizar la estructura completa del arbol.
+     * @param vMensajes Interfaz para mostrar notificaciones, alertas o mensajes informativos en la pantalla.
+     * @param vBoleta Interfaz especifica encargada de renderizar graficamente los detalles de una boleta.
      */
-    public ManejadorEventos(ArbolBPlus<Integer, Boleta> motor, ControlesEntrada input, VisualizadorArbolCompleto output, VisualizadorMensajes vMensajes) {
-        this.motorArbol = motor;
+    public ManejadorEventos(ControlesEntrada input, VisualizadorArbolCompleto output, VisualizadorMensajes  vMensajes, VisualizadorBoleta  vBoleta) {
+        this.motorArbol = new ArbolBPlus<>(inputVista.getOrdenSeleccionado());
         this.inputVista = input;
         this.outputVista = output;
         this.vMensajes = vMensajes; 
+        this.vBoleta = vBoleta;
         
         inputVista.agregarListenerBotones(this);
     }
@@ -72,7 +79,7 @@ public class ManejadorEventos implements ActionListener {
 
             Boleta resultado = motorArbol.buscar(idBuscado);
             if (resultado != null) {
-                vMensajes.mostrarBoleta(BoletaMapper.toDTO(resultado));
+                vBoleta.mostrarBoleta(BoletaMapper.toDTO(resultado));
             } else {
                 vMensajes.mostrarMensajeError("X BOLETA INEXISTENTE O FALSA.", "Error de Validación");
             }
@@ -106,7 +113,7 @@ public class ManejadorEventos implements ActionListener {
                 return;
             }
             
-            inputVista.getBtnInsertar().requestFocus();
+            inputVista.focusBtn("Ingresar");
             outputVista.setArbol(ArbolBPlusMapper.toDTO(motorArbol, BoletaMapper::toDTO));
 
         } catch (NumberFormatException ex) {
@@ -183,24 +190,35 @@ public class ManejadorEventos implements ActionListener {
             vMensajes.mostrarMensajeError("Los límites del rango deben ser números enteros.", "Error de Formato");
         }
     }
+    
     /**
-     * Reinicia completamente el árbol B+ manteniendo el orden actual.
-     * Se crea una nueva instancia vacía del árbol y se actualiza la vista.
-     * Las boletas previamente almacenadas se pierden permanentemente.
+     * Vacia por completo el arbol B+ manteniendo el orden de nodos configurado actualmente.
+     * 
+     * Este metodo le ordena al arbol existente limpiar su estructura interna regresando a 
+     * su estado inicial vacio, preservando la misma referencia en memoria para evitar desincronizaciones 
+     * en el controlador. 
+     * Al finalizar, actualiza los componentes visuales.
+     * 
+     * Todas las boletas previamente almacenadas se eliminan de forma permanente.
      */
     private void procesarReiniciar() {        
-        motorArbol = new ArbolBPlus<>(inputVista.getOrdenSeleccionado());
+        motorArbol.reiniciarConNuevoOrden(inputVista.getOrdenSeleccionado());
         outputVista.setArbol(ArbolBPlusMapper.toDTO(motorArbol, BoletaMapper::toDTO));
         vMensajes.mostrarMensaje("Estructura del árbol reiniciada con orden " + motorArbol.getOrden() + ".");
     }
+    
     /**
-     * Crea un nuevo árbol B+ con un orden diferente seleccionado por el usuario.
-     * Esta operación reemplaza completamente la estructura existente,
-     * iniciando con un árbol vacío del nuevo orden.
+     * Reconfigura el arbol B+ adaptandolo a un nuevo grado u orden seleccionado por el usuario.
+     * 
+     * Debido a que cambiar el orden altera las reglas de division y capacidad de los nodos, 
+     * el metodo formatea de forma segura el arbol existente inicializandolo con el nuevo orden 
+     * y sin registros, para luego refrescar la representacion grafica de la interfaz.
+     * 
+     * Todas las boletas previamente almacenadas se eliminan de forma permanente.
      */
     private void procesarCambioOrden() {
         int ordenSeleccionado = inputVista.getOrdenSeleccionado();
-        motorArbol = new ArbolBPlus<>(ordenSeleccionado);
+        motorArbol.reiniciarConNuevoOrden(ordenSeleccionado);
         outputVista.setArbol(ArbolBPlusMapper.toDTO(motorArbol, BoletaMapper::toDTO));
         vMensajes.mostrarMensaje("Se creó un nuevo Árbol B+ de orden " + ordenSeleccionado + ".");
     }

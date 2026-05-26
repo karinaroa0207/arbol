@@ -19,6 +19,9 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
     
     /** Grado del árbol ($m$). Define la capacidad máxima de punteros ($m$) y claves ($m-1$) por nodo. */
     private int orden; 
+    
+    /** Cantidad total de elementos (pares clave-valor) almacenados en el árbol. */
+    private int tamano;
 
     /**
      * Construye un nuevo Árbol B+ vacío.
@@ -30,6 +33,7 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
     public ArbolBPlus(int orden) {
         this.orden = orden;
         this.raiz = new NodoHoja<K, V>(orden);
+        this.tamano = 0;
     }
 
     /**
@@ -47,6 +51,7 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
 
         NodoHoja<K, V> hojaObjetivo = encontrarHoja(clave);
         insertarEnHoja(hojaObjetivo, clave, valor);
+        this.tamano++;
         return true;
     }
 
@@ -321,6 +326,8 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
         }
 
         eliminarDeHoja(hoja, posicion);
+        
+        this.tamano--;
 
         if (hoja == raiz) {
             return true;
@@ -495,7 +502,23 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
         actualizarSeparadoresDespuesDeCambio(padre);
         rebalancearInterno(padre);
     }
-
+    
+    /**
+     * Coordina el proceso de rebalanceo de un nodo interno que ha quedado en estado
+     * de subdesbordamiento (underflow) tras una eliminación.
+     * <p>
+     * El algoritmo evalúa los siguientes escenarios en orden de prioridad:
+     * <ol>
+     * <li>Si el nodo es la raíz y quedó vacío, contrae la altura del árbol.</li>
+     * <li>Si el nodo cumple con el mínimo de claves requerido, no hace nada.</li>
+     * <li>Intenta redistribuir (prestar) una clave desde el hermano izquierdo.</li>
+     * <li>Intenta redistribuir (prestar) una clave desde el hermano derecho.</li>
+     * <li>Si los hermanos no tienen claves suficientes, fusiona el nodo con el hermano izquierdo o derecho.</li>
+     * </ol>
+     * </p>
+     *
+     * @param nodo El nodo interno que sufrió la pérdida de una clave y requiere rebalanceo.
+     */
     private void rebalancearInterno(NodoInterno<K> nodo) {
         if (nodo == raiz) {
             if (nodo.numClaves == 0) {
@@ -536,7 +559,27 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
             eliminarEntradaPadre(padre, indice, indice + 1);
         }
     }
-
+    
+    /**
+     * Realiza una rotación hacia la derecha (redistribución) prestando la clave máxima 
+     * del hermano izquierdo y bajando la clave separadora del padre.
+     * <p>
+     * El proceso técnico realiza los siguientes pasos:
+     * <ol>
+     * <li>Desplaza todas las claves e hijos del nodo receptor una posición hacia la derecha.</li>
+     * <li>Copia la clave separadora del padre en la primera posición del nodo receptor.</li>
+     * <li>Mueve el último hijo del hermano izquierdo a la primera posición de hijos del nodo receptor, 
+     * actualizando la referencia de su nuevo padre.</li>
+     * <li>Sube la última clave del hermano izquierdo al padre para que actúe como el nuevo separador.</li>
+     * <li>Limpia los residuos en el hermano izquierdo y decrementa su contador.</li>
+     * </ol>
+     * </p>
+     *
+     * @param nodo      El nodo interno que se encuentra en underflow y recibirá la clave.
+     * @param izquierda El hermano izquierdo inmediato que cederá sus elementos excedentes.
+     * @param padre     El nodo padre directo que conecta a ambos hermanos.
+     * @param indice    El índice que ocupa el nodo receptor dentro del arreglo de hijos del padre.
+     */
     private void prestarDesdeInternoIzquierdo(NodoInterno<K> nodo, NodoInterno<K> izquierda, NodoInterno<K> padre, int indice) {
         for (int i = nodo.numClaves; i > 0; i--) {
             nodo.claves[i] = nodo.claves[i - 1];
@@ -555,7 +598,24 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
         izquierda.getHijos()[izquierda.numClaves] = null;
         izquierda.numClaves--;
     }
-
+    
+    /**
+     * Fusiona dos nodos internos hermanos en una sola estructura unificada, absorbiendo 
+     * la clave separadora del padre en el proceso.
+     * <p>
+     * La operación concentra todos los elementos en el nodo izquierdo:
+     * <ol>
+     * <li>Inserta la clave {@code separadorPadre} inmediatamente después de las claves originales del izquierdo.</li>
+     * <li>Sufija secuencialmente todas las claves provenientes del nodo derecho.</li>
+     * <li>Sufija todos los subárboles (hijos) del nodo derecho en el arreglo de hijos del izquierdo, 
+     * reasignando la propiedad {@code padre} de cada hijo transferido hacia el nodo izquierdo.</li>
+     * </ol>
+     * </p>
+     *
+     * @param izquierda       El nodo interno izquierdo que actuará como receptor y consolidará la fusión.
+     * @param derecha         El nodo interno derecho cuyos elementos serán absorbidos y quedará obsoleto.
+     * @param separadorPadre  La clave del nodo padre que dividía a ambos hermanos y que descenderá al nivel actual.
+     */
     private void prestarDesdeInternoDerecho(NodoInterno<K> nodo, NodoInterno<K> derecha, NodoInterno<K> padre, int indice) {
         nodo.claves[nodo.numClaves] = padre.claves[indice];
         nodo.getHijos()[nodo.numClaves + 1] = derecha.getHijos()[0];
@@ -576,6 +636,23 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
         derecha.numClaves--;
     }
 
+    /**
+     * Fusiona dos nodos internos hermanos en una sola estructura unificada, absorbiendo 
+     * la clave separadora del padre en el proceso.
+     * <p>
+     * La operación concentra todos los elementos en el nodo izquierdo:
+     * <ol>
+     * <li>Inserta la clave {@code separadorPadre} inmediatamente después de las claves originales del izquierdo.</li>
+     * <li>Sufija secuencialmente todas las claves provenientes del nodo derecho.</li>
+     * <li>Sufija todos los subárboles (hijos) del nodo derecho en el arreglo de hijos del izquierdo, 
+     * reasignando la propiedad {@code padre} de cada hijo transferido hacia el nodo izquierdo.</li>
+     * </ol>     
+     * </p>
+     *
+     * @param izquierda       El nodo interno izquierdo que actuará como receptor y consolidará la fusión.
+     * @param derecha         El nodo interno derecho cuyos elementos serán absorbidos y quedará obsoleto.
+     * @param separadorPadre  La clave del nodo padre que dividía a ambos hermanos y que descenderá al nivel actual.
+     */
     private void fusionarInternos(NodoInterno<K> izquierda, NodoInterno<K> derecha, K separadorPadre) {
         int clavesInicialesIzquierda = izquierda.numClaves;
         izquierda.claves[izquierda.numClaves] = separadorPadre;
@@ -653,5 +730,33 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
      */
     public int getOrden() {
         return orden;
+    }        
+    
+    /**
+     * Reconfigura la estructura del árbol reiniciándolo con un nuevo orden.
+     * 
+     * Al cambiar el orden, todos los elementos actuales son eliminados debido a que 
+     * la capacidad y distribución de los nodos existentes deja de ser válida.
+     * 
+     *
+     * @param nuevoOrden El nuevo grado o capacidad máxima de claves por nodo (debe ser >= 3).
+     * @throws IllegalArgumentException Si el orden ingresado es menor al mínimo permitido.
+     */
+    public void reiniciarConNuevoOrden(int nuevoOrden) {
+        if (nuevoOrden < 3) {
+            throw new IllegalArgumentException("El orden del árbol B+ debe ser al menos 3.");
+        }        
+        this.orden = nuevoOrden;
+        this.raiz = new NodoHoja<K, V>(nuevoOrden);
+        this.tamano = 0;
+    }
+    
+    /**
+     * Devuelve el número total de datos reales guardados en el árbol.
+     * 
+     * @return La cantidad total de elementos reales que contiene el árbol
+     */
+    public int getTamano() {
+        return tamano;
     }        
 }

@@ -1,6 +1,5 @@
 package edu.co.udistrital.controlador;
 
-import edu.co.udistrital.modelo.BoletaDTO;
 
 /**
  * Define el contrato para cualquier componente capaz de renderizar o notificar
@@ -72,14 +71,6 @@ public interface VisualizadorMensajes {
      *                al usuario. No debería ser {@code null} o estar vacío.
      * @param titulo Título de la advertencia
      */
-    void mostrarMensajeWarning(String mensaje, String titulo);
-
-    /**
-     * Muestra una boleta validada usando una representación visual propia de la
-     * interfaz, no el texto crudo del modelo.
-     *
-     * @param boleta DTO con los datos de presentación de la boleta encontrada.
-     */
-    void mostrarBoleta(BoletaDTO boleta);
+    void mostrarMensajeWarning(String mensaje, String titulo);    
     
 }

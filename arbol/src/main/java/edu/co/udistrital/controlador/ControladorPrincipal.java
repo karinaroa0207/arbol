@@ -24,7 +24,6 @@ import edu.co.udistrital.vista.VentanaPrincipal;
 public class ControladorPrincipal {
     
     private VentanaPrincipal vistaPrincipal;
-    private ArbolBPlus<Integer, Boleta> baseDatosBoletas;
 
     /**
      * Construye el controlador y establece la conexión vista-modelo.
@@ -32,8 +31,7 @@ public class ControladorPrincipal {
      * @param vista Referencia a la ventana principal (interfaz gráfica)
      */
     public ControladorPrincipal(VentanaPrincipal vista) {
-        this.vistaPrincipal = vista;
-        this.baseDatosBoletas = new ArbolBPlus<>(vista.getControlesEntrada().getOrdenSeleccionado()); 
+        this.vistaPrincipal = vista;        
         
         configurarEventos();
     }
@@ -45,9 +43,9 @@ public class ControladorPrincipal {
      */
     private void configurarEventos() {
         ManejadorEventos manejador = new ManejadorEventos(
-            baseDatosBoletas, 
             vistaPrincipal.getControlesEntrada(), 
             vistaPrincipal.getVisualizadorArbol(),
+            vistaPrincipal,
             vistaPrincipal
         );
     }
