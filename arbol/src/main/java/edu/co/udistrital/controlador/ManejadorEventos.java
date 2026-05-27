@@ -35,8 +35,8 @@ public class ManejadorEventos implements ActionListener {
      * @param vBoleta Interfaz especifica encargada de renderizar graficamente los detalles de una boleta.
      */
     public ManejadorEventos(ControlesEntrada input, VisualizadorArbolCompleto output, VisualizadorMensajes  vMensajes, VisualizadorBoleta  vBoleta) {
-        this.motorArbol = new ArbolBPlus<>(inputVista.getOrdenSeleccionado());
         this.inputVista = input;
+        this.motorArbol = new ArbolBPlus<>(inputVista.getOrdenSeleccionado());        
         this.outputVista = output;
         this.vMensajes = vMensajes; 
         this.vBoleta = vBoleta;
