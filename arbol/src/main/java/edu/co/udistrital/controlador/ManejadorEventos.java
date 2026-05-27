@@ -139,7 +139,7 @@ public class ManejadorEventos implements ActionListener {
             boolean eliminado = motorArbol.eliminar(idEliminar);
             if (eliminado) {
                 outputVista.setArbol(ArbolBPlusMapper.toDTO(motorArbol, BoletaMapper::toDTO));
-                vMensajes.mostrarMensaje(null, "Boleta con ID " + idEliminar + " eliminada y árbol rebalanceado.");
+                vMensajes.mostrarMensaje("Boleta con ID " + idEliminar + " eliminada y árbol rebalanceado.");
             } else {
                 vMensajes.mostrarMensajeWarning("No existe una boleta con ID " + idEliminar + ".", "Eliminación no realizada");
             }
