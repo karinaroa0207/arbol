@@ -1,5 +1,8 @@
 package edu.co.udistrital.modelo;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Motor principal del Árbol B+.
  * Estructura de datos de búsqueda multidireccional y autobalanceada.
@@ -16,6 +19,9 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
     
     /** Grado del árbol ($m$). Define la capacidad máxima de punteros ($m$) y claves ($m-1$) por nodo. */
     private int orden; 
+    
+    /** Cantidad total de elementos (pares clave-valor) almacenados en el árbol. */
+    private int tamano;
 
     /**
      * Construye un nuevo Árbol B+ vacío.
@@ -27,6 +33,7 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
     public ArbolBPlus(int orden) {
         this.orden = orden;
         this.raiz = new NodoHoja<K, V>(orden);
+        this.tamano = 0;
     }
 
     /**
@@ -35,10 +42,17 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
      *
      * @param clave El identificador único para ordenar el dato (ej. ID de la boleta).
      * @param valor El objeto real a almacenar en memoria.
+     * @return true si la inserción fue exitosa, false si la clave ya existía
      */
-    public void insertar(K clave, V valor) {
+    public boolean insertar(K clave, V valor) {
+        if (buscar(clave) != null) {
+            return false;
+        }
+
         NodoHoja<K, V> hojaObjetivo = encontrarHoja(clave);
         insertarEnHoja(hojaObjetivo, clave, valor);
+        this.tamano++;
+        return true;
     }
 
     /**
@@ -257,8 +271,492 @@ public class ArbolBPlus<K extends Comparable<K>, V> {
         
         return null; // Ausencia de datos
     }
+    /**
+     * Recupera todos los registros cuyas claves estén dentro de un intervalo cerrado.
+     * Esta operación aprovecha la característica principal del Árbol B+: las hojas
+     * están conectadas entre sí como una lista enlazada, por lo que después de
+     * encontrar la primera hoja solo se avanza secuencialmente.
+     *
+     * @param inicio Límite inferior del rango.
+     * @param fin Límite superior del rango.
+     * @return Lista dinámica con todos los registros encontrados en orden ascendente.
+     */
+    public List<V> buscarRango(K inicio, K fin) {
+        ArrayList<V> resultados = new ArrayList<>();
+
+        if (inicio.compareTo(fin) > 0) {
+            return resultados;
+        }
+
+        NodoHoja<K, V> hojaActual = encontrarHoja(inicio);
+
+        while (hojaActual != null) {
+            for (int i = 0; i < hojaActual.numClaves; i++) {
+                K claveActual = hojaActual.claves[i];
+
+                if (claveActual.compareTo(fin) > 0) {
+                    return resultados;
+                }
+
+                if (claveActual.compareTo(inicio) >= 0) {
+                    resultados.add(hojaActual.getValores()[i]);
+                }
+            }
+
+            hojaActual = hojaActual.getSiguiente();
+        }
+
+        return resultados;
+    }
+
+    /**
+     * Elimina un registro por su clave y repara la estructura si algún nodo queda
+     * por debajo del mínimo permitido. El proceso sigue la regla clásica de B+:
+     * primero intenta redistribuir con hermanos y, si no es posible, fusiona nodos.
+     *
+     * @param clave Clave única del registro a eliminar.
+     * @return true si la clave existía y fue eliminada; false si no estaba en el árbol.
+     */
+    public boolean eliminar(K clave) {
+        NodoHoja<K, V> hoja = encontrarHoja(clave);
+        int posicion = buscarIndiceClave(hoja, clave);
+
+        if (posicion == -1) {
+            return false;
+        }
+
+        eliminarDeHoja(hoja, posicion);
+        
+        this.tamano--;
+
+        if (hoja == raiz) {
+            return true;
+        }
+
+        if (hoja.numClaves >= minimoClavesHoja()) {
+            actualizarSeparadoresDespuesDeCambio(hoja);
+            return true;
+        }
+
+        rebalancearHoja(hoja);
+        return true;
+    }
+
+    private int buscarIndiceClave(NodoHoja<K, V> hoja, K clave) {
+        for (int i = 0; i < hoja.numClaves; i++) {
+            if (hoja.claves[i].compareTo(clave) == 0) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    /**
+    * Elimina físicamente un elemento de un nodo hoja en la posición especificada.
+    * Realiza un desplazamiento hacia la izquierda de los elementos posteriores
+    * para mantener la compacidad del arreglo.
+    *
+    * @param hoja El nodo hoja que contiene el elemento a eliminar.
+    * @param posicion El índice dentro del arreglo donde se encuentra la clave.
+    */
+    private void eliminarDeHoja(NodoHoja<K, V> hoja, int posicion) {
+        for (int i = posicion; i < hoja.numClaves - 1; i++) {
+            hoja.claves[i] = hoja.claves[i + 1];
+            hoja.getValores()[i] = hoja.getValores()[i + 1];
+        }
+
+        hoja.claves[hoja.numClaves - 1] = null;
+        hoja.getValores()[hoja.numClaves - 1] = null;
+        hoja.numClaves--;
+    }
+    /**
+     * Calcula el número mínimo de claves que debe tener un nodo hoja
+     * para considerarse válido (sin underflow).
+     * Fórmula: ⌈(orden - 1) / 2⌉
+     *
+     * @return La cantidad mínima de claves permitida en un nodo hoja.
+     */
+    private int minimoClavesHoja() {
+        return (int) Math.ceil((orden - 1) / 2.0);
+    }
+    /**
+    * Calcula el número mínimo de claves que debe tener un nodo interno
+    * para considerarse válido (sin underflow).
+    * Fórmula: ⌈orden / 2⌉ - 1
+    *
+    * @return La cantidad mínima de claves permitida en un nodo interno.
+    */
+    private int minimoClavesInterno() {
+        return (int) Math.ceil(orden / 2.0) - 1;
+    }
+     /**
+     * Encuentra el índice de un nodo hijo dentro del arreglo de hijos de su padre.
+     *
+     * @param padre El nodo padre que contiene el arreglo de hijos.
+     * @param hijoBuscado El nodo hijo cuya posición se desea conocer.
+     * @return El índice del hijo en el arreglo, -1 si no se encuentra.
+     */
+
+    private int indiceHijo(NodoInterno<K> padre, NodoBPlus<K> hijoBuscado) {
+        for (int i = 0; i <= padre.numClaves; i++) {
+            if (padre.getHijos()[i] == hijoBuscado) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    /**
+     * Rebalancea un nodo hoja que ha caído por debajo del mínimo de claves permitido.
+     * Primero intenta redistribuir tomando prestada una clave de un hermano (izquierdo o derecho).
+     * Si no es posible, fusiona el nodo actual con su hermano.
+     *
+     * @param hoja El nodo hoja que necesita rebalanceo por underflow.
+     */
+    @SuppressWarnings("unchecked")
+    private void rebalancearHoja(NodoHoja<K, V> hoja) {
+        NodoInterno<K> padre = hoja.padre;
+        int indice = indiceHijo(padre, hoja);
+        NodoHoja<K, V> izquierda = indice > 0 ? (NodoHoja<K, V>) padre.getHijos()[indice - 1] : null;
+        NodoHoja<K, V> derecha = indice < padre.numClaves ? (NodoHoja<K, V>) padre.getHijos()[indice + 1] : null;
+
+        if (izquierda != null && izquierda.numClaves > minimoClavesHoja()) {
+            desplazarHojaDerecha(hoja);
+            hoja.claves[0] = izquierda.claves[izquierda.numClaves - 1];
+            hoja.getValores()[0] = izquierda.getValores()[izquierda.numClaves - 1];
+            izquierda.claves[izquierda.numClaves - 1] = null;
+            izquierda.getValores()[izquierda.numClaves - 1] = null;
+            izquierda.numClaves--;
+            hoja.numClaves++;
+            padre.claves[indice - 1] = hoja.claves[0];
+            return;
+        }
+
+        if (derecha != null && derecha.numClaves > minimoClavesHoja()) {
+            hoja.claves[hoja.numClaves] = derecha.claves[0];
+            hoja.getValores()[hoja.numClaves] = derecha.getValores()[0];
+            hoja.numClaves++;
+            eliminarDeHoja(derecha, 0);
+            padre.claves[indice] = derecha.claves[0];
+            return;
+        }
+
+        if (izquierda != null) {
+            fusionarHojas(izquierda, hoja);
+            eliminarEntradaPadre(padre, indice - 1, indice);
+        } else if (derecha != null) {
+            fusionarHojas(hoja, derecha);
+            eliminarEntradaPadre(padre, indice, indice + 1);
+        }
+    }
+    /**
+     * Desplaza todas las claves y valores de una hoja una posición a la derecha.
+     * Utilizado para crear espacio en la posición 0 cuando se toma prestada
+     * una clave del hermano izquierdo.
+     *
+     * @param hoja La hoja cuyos elementos serán desplazados.
+     */
+    private void desplazarHojaDerecha(NodoHoja<K, V> hoja) {
+        for (int i = hoja.numClaves; i > 0; i--) {
+            hoja.claves[i] = hoja.claves[i - 1];
+            hoja.getValores()[i] = hoja.getValores()[i - 1];
+        }
+    }
+
+    /**
+    * Fusiona dos nodos hoja adyacentes, moviendo todas las claves y valores
+    * de la hoja derecha hacia la hoja izquierda. Actualiza el puntero siguiente
+    * para mantener la lista enlazada.
+    *
+    * @param izquierda Nodo hoja que absorbe los elementos (se conserva).
+    * @param derecha Nodo hoja que será absorbido y posteriormente eliminado.
+    */
+    private void fusionarHojas(NodoHoja<K, V> izquierda, NodoHoja<K, V> derecha) {
+        for (int i = 0; i < derecha.numClaves; i++) {
+            izquierda.claves[izquierda.numClaves] = derecha.claves[i];
+            izquierda.getValores()[izquierda.numClaves] = derecha.getValores()[i];
+            izquierda.numClaves++;
+        }
+
+        izquierda.setSiguiente(derecha.getSiguiente());
+    }
+    /**
+    * Elimina una entrada (clave y su hijo asociado) de un nodo interno.
+    * Después de la eliminación, verifica si el nodo padre necesita rebalanceo.
+    *
+    * @param padre El nodo interno del cual se eliminará la entrada.
+    * @param indiceClave Índice de la clave a eliminar en el arreglo de claves.
+    * @param indiceHijo Índice del hijo asociado a eliminar en el arreglo de hijos.
+    */
+
+    private void eliminarEntradaPadre(NodoInterno<K> padre, int indiceClave, int indiceHijo) {
+        for (int i = indiceClave; i < padre.numClaves - 1; i++) {
+            padre.claves[i] = padre.claves[i + 1];
+        }
+        padre.claves[padre.numClaves - 1] = null;
+
+        for (int i = indiceHijo; i < padre.numClaves; i++) {
+            padre.getHijos()[i] = padre.getHijos()[i + 1];
+        }
+        padre.getHijos()[padre.numClaves] = null;
+        padre.numClaves--;
+
+        actualizarSeparadoresDespuesDeCambio(padre);
+        rebalancearInterno(padre);
+    }
     
+    /**
+     * Coordina el proceso de rebalanceo de un nodo interno que ha quedado en estado
+     * de subdesbordamiento (underflow) tras una eliminación.
+     * <p>
+     * El algoritmo evalúa los siguientes escenarios en orden de prioridad:
+     * <ol>
+     * <li>Si el nodo es la raíz y quedó vacío, contrae la altura del árbol.</li>
+     * <li>Si el nodo cumple con el mínimo de claves requerido, no hace nada.</li>
+     * <li>Intenta redistribuir (prestar) una clave desde el hermano izquierdo.</li>
+     * <li>Intenta redistribuir (prestar) una clave desde el hermano derecho.</li>
+     * <li>Si los hermanos no tienen claves suficientes, fusiona el nodo con el hermano izquierdo o derecho.</li>
+     * </ol>
+     * </p>
+     *
+     * @param nodo El nodo interno que sufrió la pérdida de una clave y requiere rebalanceo.
+     */
+    private void rebalancearInterno(NodoInterno<K> nodo) {
+        if (nodo == raiz) {
+            if (nodo.numClaves == 0) {
+                raiz = nodo.getHijos()[0];
+                if (raiz != null) {
+                    raiz.padre = null;
+                } else {
+                    raiz = new NodoHoja<K, V>(orden);
+                }
+            }
+            return;
+        }
+
+        if (nodo.numClaves >= minimoClavesInterno()) {
+            return;
+        }
+
+        NodoInterno<K> padre = nodo.padre;
+        int indice = indiceHijo(padre, nodo);
+        NodoInterno<K> izquierda = indice > 0 ? (NodoInterno<K>) padre.getHijos()[indice - 1] : null;
+        NodoInterno<K> derecha = indice < padre.numClaves ? (NodoInterno<K>) padre.getHijos()[indice + 1] : null;
+
+        if (izquierda != null && izquierda.numClaves > minimoClavesInterno()) {
+            prestarDesdeInternoIzquierdo(nodo, izquierda, padre, indice);
+            return;
+        }
+
+        if (derecha != null && derecha.numClaves > minimoClavesInterno()) {
+            prestarDesdeInternoDerecho(nodo, derecha, padre, indice);
+            return;
+        }
+
+        if (izquierda != null) {
+            fusionarInternos(izquierda, nodo, padre.claves[indice - 1]);
+            eliminarEntradaPadre(padre, indice - 1, indice);
+        } else if (derecha != null) {
+            fusionarInternos(nodo, derecha, padre.claves[indice]);
+            eliminarEntradaPadre(padre, indice, indice + 1);
+        }
+    }
+    
+    /**
+     * Realiza una rotación hacia la derecha (redistribución) prestando la clave máxima 
+     * del hermano izquierdo y bajando la clave separadora del padre.
+     * <p>
+     * El proceso técnico realiza los siguientes pasos:
+     * <ol>
+     * <li>Desplaza todas las claves e hijos del nodo receptor una posición hacia la derecha.</li>
+     * <li>Copia la clave separadora del padre en la primera posición del nodo receptor.</li>
+     * <li>Mueve el último hijo del hermano izquierdo a la primera posición de hijos del nodo receptor, 
+     * actualizando la referencia de su nuevo padre.</li>
+     * <li>Sube la última clave del hermano izquierdo al padre para que actúe como el nuevo separador.</li>
+     * <li>Limpia los residuos en el hermano izquierdo y decrementa su contador.</li>
+     * </ol>
+     * </p>
+     *
+     * @param nodo      El nodo interno que se encuentra en underflow y recibirá la clave.
+     * @param izquierda El hermano izquierdo inmediato que cederá sus elementos excedentes.
+     * @param padre     El nodo padre directo que conecta a ambos hermanos.
+     * @param indice    El índice que ocupa el nodo receptor dentro del arreglo de hijos del padre.
+     */
+    private void prestarDesdeInternoIzquierdo(NodoInterno<K> nodo, NodoInterno<K> izquierda, NodoInterno<K> padre, int indice) {
+        for (int i = nodo.numClaves; i > 0; i--) {
+            nodo.claves[i] = nodo.claves[i - 1];
+        }
+        for (int i = nodo.numClaves + 1; i > 0; i--) {
+            nodo.getHijos()[i] = nodo.getHijos()[i - 1];
+        }
+
+        nodo.claves[0] = padre.claves[indice - 1];
+        nodo.getHijos()[0] = izquierda.getHijos()[izquierda.numClaves];
+        nodo.getHijos()[0].padre = nodo;
+        nodo.numClaves++;
+
+        padre.claves[indice - 1] = izquierda.claves[izquierda.numClaves - 1];
+        izquierda.claves[izquierda.numClaves - 1] = null;
+        izquierda.getHijos()[izquierda.numClaves] = null;
+        izquierda.numClaves--;
+    }
+    
+    /**
+     * Fusiona dos nodos internos hermanos en una sola estructura unificada, absorbiendo 
+     * la clave separadora del padre en el proceso.
+     * <p>
+     * La operación concentra todos los elementos en el nodo izquierdo:
+     * <ol>
+     * <li>Inserta la clave {@code separadorPadre} inmediatamente después de las claves originales del izquierdo.</li>
+     * <li>Sufija secuencialmente todas las claves provenientes del nodo derecho.</li>
+     * <li>Sufija todos los subárboles (hijos) del nodo derecho en el arreglo de hijos del izquierdo, 
+     * reasignando la propiedad {@code padre} de cada hijo transferido hacia el nodo izquierdo.</li>
+     * </ol>
+     * </p>
+     *
+     * @param izquierda       El nodo interno izquierdo que actuará como receptor y consolidará la fusión.
+     * @param derecha         El nodo interno derecho cuyos elementos serán absorbidos y quedará obsoleto.
+     * @param separadorPadre  La clave del nodo padre que dividía a ambos hermanos y que descenderá al nivel actual.
+     */
+    private void prestarDesdeInternoDerecho(NodoInterno<K> nodo, NodoInterno<K> derecha, NodoInterno<K> padre, int indice) {
+        nodo.claves[nodo.numClaves] = padre.claves[indice];
+        nodo.getHijos()[nodo.numClaves + 1] = derecha.getHijos()[0];
+        nodo.getHijos()[nodo.numClaves + 1].padre = nodo;
+        nodo.numClaves++;
+
+        padre.claves[indice] = derecha.claves[0];
+
+        for (int i = 0; i < derecha.numClaves - 1; i++) {
+            derecha.claves[i] = derecha.claves[i + 1];
+        }
+        for (int i = 0; i < derecha.numClaves; i++) {
+            derecha.getHijos()[i] = derecha.getHijos()[i + 1];
+        }
+
+        derecha.claves[derecha.numClaves - 1] = null;
+        derecha.getHijos()[derecha.numClaves] = null;
+        derecha.numClaves--;
+    }
+
+    /**
+     * Fusiona dos nodos internos hermanos en una sola estructura unificada, absorbiendo 
+     * la clave separadora del padre en el proceso.
+     * <p>
+     * La operación concentra todos los elementos en el nodo izquierdo:
+     * <ol>
+     * <li>Inserta la clave {@code separadorPadre} inmediatamente después de las claves originales del izquierdo.</li>
+     * <li>Sufija secuencialmente todas las claves provenientes del nodo derecho.</li>
+     * <li>Sufija todos los subárboles (hijos) del nodo derecho en el arreglo de hijos del izquierdo, 
+     * reasignando la propiedad {@code padre} de cada hijo transferido hacia el nodo izquierdo.</li>
+     * </ol>     
+     * </p>
+     *
+     * @param izquierda       El nodo interno izquierdo que actuará como receptor y consolidará la fusión.
+     * @param derecha         El nodo interno derecho cuyos elementos serán absorbidos y quedará obsoleto.
+     * @param separadorPadre  La clave del nodo padre que dividía a ambos hermanos y que descenderá al nivel actual.
+     */
+    private void fusionarInternos(NodoInterno<K> izquierda, NodoInterno<K> derecha, K separadorPadre) {
+        int clavesInicialesIzquierda = izquierda.numClaves;
+        izquierda.claves[izquierda.numClaves] = separadorPadre;
+        izquierda.numClaves++;
+
+        for (int i = 0; i < derecha.numClaves; i++) {
+            izquierda.claves[izquierda.numClaves] = derecha.claves[i];
+            izquierda.numClaves++;
+        }
+
+        int posicionPrimerHijoDerecho = clavesInicialesIzquierda + 1;
+        for (int i = 0; i <= derecha.numClaves; i++) {
+            izquierda.getHijos()[posicionPrimerHijoDerecho + i] = derecha.getHijos()[i];
+            izquierda.getHijos()[posicionPrimerHijoDerecho + i].padre = izquierda;
+        }
+    }
+    /**
+     * Actualiza las claves separadoras en los nodos ancestros después de una operación
+     * que modificó la primera clave del nodo actual. Esto es necesario porque la primera
+     * clave de un hijo sirve como separador en el padre.
+     *
+     * @param nodo El nodo cuyo cambio en su primera clave debe propagarse hacia arriba.
+     */
+    private void actualizarSeparadoresDespuesDeCambio(NodoBPlus<K> nodo) {
+        if (nodo.padre == null || nodo.numClaves == 0) {
+            return;
+        }
+
+        NodoInterno<K> padre = nodo.padre;
+        int indice = indiceHijo(padre, nodo);
+
+        if (indice > 0) {
+            padre.claves[indice - 1] = obtenerPrimeraClave(nodo);
+        } else {
+            actualizarSeparadoresDespuesDeCambio(padre);
+        }
+    }
+    /**
+     * Obtiene la primera clave del nodo más a la izquierda del subárbol.
+     * Desciende recursivamente por los hijos izquierdos hasta alcanzar una hoja.
+     *
+     * @param nodo Nodo de partida para la búsqueda de la clave más izquierda.
+     * @return La primera clave de la hoja más izquierda, o null si el nodo está vacío.
+     */
+    @SuppressWarnings("unchecked")
+    private K obtenerPrimeraClave(NodoBPlus<K> nodo) {
+        NodoBPlus<K> actual = nodo;
+
+        while (actual instanceof NodoInterno) {
+            actual = ((NodoInterno<K>) actual).getHijos()[0];
+        }
+
+        return actual.numClaves > 0 ? actual.claves[0] : null;
+    }
+    /**
+     * Obtiene el nodo raíz actual del árbol.
+     *
+     * @return El nodo raíz. Puede ser una hoja (árbol vacío) o un nodo interno.
+     */
      public NodoBPlus<K> getRaiz() {
         return this.raiz;
     }
+     
+    /**
+    * Vacía por completo la estructura del árbol, eliminando todos los 
+    * nodos y restableciendo el estado inicial.
+    */
+    public void reiniciar() {        
+        this.raiz = new NodoHoja<K, V>(orden);
+    }
+    /**
+     * Obtiene el grado (orden) del árbol.
+     *
+     * @return El valor del orden definido en la construcción del árbol.
+     */
+    public int getOrden() {
+        return orden;
+    }        
+    
+    /**
+     * Reconfigura la estructura del árbol reiniciándolo con un nuevo orden.
+     * 
+     * Al cambiar el orden, todos los elementos actuales son eliminados debido a que 
+     * la capacidad y distribución de los nodos existentes deja de ser válida.
+     * 
+     *
+     * @param nuevoOrden El nuevo grado o capacidad máxima de claves por nodo (debe ser >= 3).
+     * @throws IllegalArgumentException Si el orden ingresado es menor al mínimo permitido.
+     */
+    public void reiniciarConNuevoOrden(int nuevoOrden) {
+        if (nuevoOrden < 3) {
+            throw new IllegalArgumentException("El orden del árbol B+ debe ser al menos 3.");
+        }        
+        this.orden = nuevoOrden;
+        this.raiz = new NodoHoja<K, V>(nuevoOrden);
+        this.tamano = 0;
+    }
+    
+    /**
+     * Devuelve el número total de datos reales guardados en el árbol.
+     * 
+     * @return La cantidad total de elementos reales que contiene el árbol
+     */
+    public int getTamano() {
+        return tamano;
+    }        
 }

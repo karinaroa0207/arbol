@@ -1,153 +1,287 @@
 package edu.co.udistrital.vista;
 
-import edu.co.udistrital.modelo.ArbolBPlus;
-import edu.co.udistrital.modelo.Boleta;
-import edu.co.udistrital.modelo.NodoBPlus;
-import edu.co.udistrital.modelo.NodoHoja;
-import edu.co.udistrital.modelo.NodoInterno;
-
+import edu.co.udistrital.modelo.ArbolBPlusDTO;
+import edu.co.udistrital.modelo.BoletaDTO;
+import edu.co.udistrital.modelo.NodoDTO;
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Panel de renderizado del Árbol B+ completo.
- * Dibuja la estructura jerárquica recursivamente usando Java 2D.
- * Se encarga de la traducción de objetos matemáticos genéricos a gráficos visuales.
+ * Componente gráfico estilizado encargado de renderizar de forma recursiva
+ * cualquier estructura de Árbol B+ a partir de un DTO topológico.
+ * 
+ * @author Karina Roa
+ * @version 1.0
+ * @see ArbolBPlusDTO
+ * @see NodoDTO
  */
 public class VisualizadorArbolCompleto extends JPanel {
     
-    // Paleta Dark Premium
+    /** Color de fondo para las tarjetas de los nodos. */
     private final Color FONDO_TARJETA = new Color(25, 25, 30, 220);
+    
+    /** Color neón azul para bordes de nodos internos y líneas de conexión. */
     private final Color NEON_AZUL = new Color(0, 229, 255);
+    
+    /** Color neón fucsia para bordes de nodos hoja y enlaces entre hojas. */
     private final Color NEON_FUCSIA = new Color(255, 0, 127);
+    
+    /** Color neón púrpura para destacar el nodo raíz. */
     private final Color NEON_PURPURA = new Color(177, 0, 255);
+    
+    /** Color para texto claro dentro de los nodos. */
     private final Color TEXTO_CLARO = new Color(230, 230, 230);
 
-    // Referencia al modelo matemático
-    private ArbolBPlus<Integer, Boleta> motorArbol;
+    /** DTO del árbol que se va a visualizar. */
+    private ArbolBPlusDTO<Integer, BoletaDTO> dtoArbol;
 
-    // Parámetros de dibujo para mantener proporciones correctas
-    private final int ANCHO_NODO = 180;
+    /** Ancho mínimo que debe tener un nodo. */
+    private final int ANCHO_MINIMO_NODO = 180;
+    
+    /** Alto fijo de cada nodo. */
     private final int ALTO_NODO = 70;
-    private final int ESPACIO_HORIZONTAL = 40;
+    
+    /** Padding horizontal adicional para el texto del nodo. */
+    private final int PADDING_HORIZONTAL_NODO = 42;
+    
+    /** Ancho aproximado de un carácter en píxeles para cálculos de texto. */
+    private final int ANCHO_CARACTER_APROXIMADO = 14;
+    
+    /** Espacio horizontal entre nodos hermanos. */
+    private final int ESPACIO_HORIZONTAL = 60;
+    
+    /** Espacio vertical entre niveles del árbol. */
     private final int ESPACIO_VERTICAL = 100;
+    
+    /** Margen horizontal del panel. */
+    private final int MARGEN_HORIZONTAL = 40;
+    
+    /** Margen vertical del panel. */
+    private final int MARGEN_VERTICAL = 80;
 
+    /**
+     * Constructor del visualizador.
+     * Configura el panel como transparente para permitir fondos personalizados.
+     */
     public VisualizadorArbolCompleto() {
-        setOpaque(false); // Transparente para que el Frame dibuje su fondo oscuro
+        setOpaque(false);
     }
 
     /**
-     * Recibe la referencia al árbol actual y ordena redibujar el lienzo.
-     * @param arbol La estructura matemática con los datos actualizados.
+     * Recibe el snapshot estructurado (DTO) y gatilla el redibujado del panel.
+     * 
+     * @param dto DTO del árbol a visualizar
      */
-    public void setArbol(ArbolBPlus<Integer, Boleta> arbol) {
-        this.motorArbol = arbol;
-        repaint(); // Ordena a Java redibujar este panel inmediatamente
+    public void setArbol(ArbolBPlusDTO<Integer, BoletaDTO> dto) {
+        this.dtoArbol = dto;
+        actualizarTamanoPreferido();
+        revalidate();
+        repaint();
     }
 
+    /**
+     * Dibuja el árbol completo en el panel.
+     * 
+     * @param g Objeto Graphics para dibujar
+     */
     @Override
-    @SuppressWarnings("unchecked")
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        if (motorArbol == null) return; // Evitar null pointer al inicio
+        if (dtoArbol == null || dtoArbol.getRaiz() == null) return; 
 
         Graphics2D g2d = (Graphics2D) g;
-        // Calidad máxima de renderizado para bordes suaves
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        // Arrancar el dibujo recursivo desde la raíz en la posición central superior
-        if (motorArbol.getRaiz() != null) {
-            // SOLUCIÓN: Casteo explícito a Integer para evitar el error de genéricos en NetBeans
-            NodoBPlus<Integer> raizComoEntero = (NodoBPlus<Integer>) motorArbol.getRaiz();
-            dibujarNodoRecursivo(g2d, raizComoEntero, getWidth() / 2, 50, 1);
+        List<HojaDibujada> hojas = new ArrayList<>();
+        int anchoTotal = calcularAnchoSubarbol(dtoArbol.getRaiz());
+        int xInicio = Math.max(MARGEN_HORIZONTAL, (getWidth() - anchoTotal) / 2);
+        int xRaiz = xInicio + anchoTotal / 2;
+
+        dibujarNodoRecursivo(g2d, dtoArbol.getRaiz(), xRaiz, xInicio, 50, 1, hojas);
+        dibujarEnlacesEntreHojas(g2d, hojas);
+    }
+
+    /**
+     * Calcula cuánto espacio horizontal requiere un nodo incluyendo todos sus
+     * descendientes. Esto evita que subárboles vecinos se monten visualmente.
+     * 
+     * @param nodo Nodo a evaluar
+     * @return Ancho total necesario para el subárbol
+     */
+    private int calcularAnchoSubarbol(NodoDTO<Integer, BoletaDTO> nodo) {
+        if (nodo.esHoja() || nodo.getHijos().isEmpty()) {
+            return calcularAnchoNodo(nodo);
+        }
+
+        int ancho = 0;
+        for (NodoDTO<Integer, BoletaDTO> hijo : nodo.getHijos()) {
+            ancho += calcularAnchoSubarbol(hijo);
+        }
+
+        ancho += ESPACIO_HORIZONTAL * (nodo.getHijos().size() - 1);
+        return Math.max(calcularAnchoNodo(nodo), ancho);
+    }
+
+    /**
+     * Calcula el ancho visual mínimo que necesita el nodo para que sus claves
+     * no se salgan de la caja, incluso con órdenes altos.
+     * 
+     * @param nodo Nodo a evaluar
+     * @return Ancho mínimo del nodo
+     */
+    private int calcularAnchoNodo(NodoDTO<Integer, BoletaDTO> nodo) {
+        int anchoTexto = nodo.toStringClaves().length() * ANCHO_CARACTER_APROXIMADO;
+        return Math.max(ANCHO_MINIMO_NODO, anchoTexto + PADDING_HORIZONTAL_NODO);
+    }
+
+    /**
+     * Ajusta el tamaño ideal del lienzo para que el JScrollPane pueda activar
+     * barras de desplazamiento cuando el árbol exceda el área visible.
+     */
+    private void actualizarTamanoPreferido() {
+        if (dtoArbol == null || dtoArbol.getRaiz() == null) {
+            setPreferredSize(new Dimension(900, 500));
+            return;
+        }
+
+        int ancho = calcularAnchoSubarbol(dtoArbol.getRaiz()) + (MARGEN_HORIZONTAL * 2);
+        int alto = 50 + (calcularProfundidad(dtoArbol.getRaiz()) * ESPACIO_VERTICAL) + ALTO_NODO + MARGEN_VERTICAL;
+        setPreferredSize(new Dimension(ancho, alto));
+    }
+
+    /**
+     * Calcula la profundidad máxima del árbol desde el nodo dado.
+     * 
+     * @param nodo Nodo a evaluar
+     * @return Profundidad del subárbol
+     */
+    private int calcularProfundidad(NodoDTO<Integer, BoletaDTO> nodo) {
+        if (nodo.esHoja() || nodo.getHijos().isEmpty()) {
+            return 0;
+        }
+
+        int profundidadMaxima = 0;
+        for (NodoDTO<Integer, BoletaDTO> hijo : nodo.getHijos()) {
+            profundidadMaxima = Math.max(profundidadMaxima, calcularProfundidad(hijo));
+        }
+
+        return profundidadMaxima + 1;
+    }
+
+    /**
+     * Método recursivo encargado de pintar nodos, calcular posiciones de hijos y trazar enlaces.
+     * 
+     * @param g2d Contexto gráfico 2D
+     * @param nodo Nodo a dibujar
+     * @param x Coordenada X del centro del nodo
+     * @param xInicioSubarbol Coordenada X de inicio del subárbol
+     * @param y Coordenada Y del nodo
+     * @param nivel Nivel del árbol (1 = raíz)
+     * @param hojas Lista acumuladora de hojas para luego dibujar enlaces
+     */
+    private void dibujarNodoRecursivo(
+            Graphics2D g2d,
+            NodoDTO<Integer, BoletaDTO> nodo,
+            int x,
+            int xInicioSubarbol,
+            int y,
+            int nivel,
+            List<HojaDibujada> hojas) {
+        int anchoNodo = calcularAnchoNodo(nodo);
+
+        g2d.setColor(FONDO_TARJETA);
+        g2d.fillRoundRect(x - anchoNodo / 2, y, anchoNodo, ALTO_NODO, 20, 20);
+        
+        g2d.setColor(new Color(255, 255, 255, 40));
+        g2d.drawRoundRect(x - anchoNodo / 2, y, anchoNodo, ALTO_NODO, 20, 20);
+
+        g2d.setColor(TEXTO_CLARO);
+        g2d.setFont(new Font("Monospaced", Font.BOLD, 22));
+        String clavesString = nodo.toStringClaves(); 
+        FontMetrics fm = g2d.getFontMetrics();
+        g2d.drawString(clavesString, x - fm.stringWidth(clavesString) / 2, y + ALTO_NODO / 2 + fm.getAscent() / 2 - 2);
+
+        if (!nodo.esHoja()) {
+            g2d.setColor(NEON_AZUL);
+            g2d.drawRoundRect(x - anchoNodo / 2, y, anchoNodo, ALTO_NODO, 20, 20);
+
+            int yHijos = y + ESPACIO_VERTICAL;
+            int cursorX = xInicioSubarbol;
+
+            for (int i = 0; i < nodo.getHijos().size(); i++) {
+                NodoDTO<Integer, BoletaDTO> hijoDTO = nodo.getHijos().get(i);
+                int anchoHijo = calcularAnchoSubarbol(hijoDTO);
+                int xHijo = cursorX + anchoHijo / 2;
+                
+                g2d.setColor(NEON_AZUL);
+                g2d.drawLine(x, y + ALTO_NODO, xHijo, yHijos);
+                
+                dibujarNodoRecursivo(g2d, hijoDTO, xHijo, cursorX, yHijos, nivel + 1, hojas);
+                cursorX += anchoHijo + ESPACIO_HORIZONTAL;
+            }
+        } else {
+            g2d.setColor(NEON_FUCSIA);
+            g2d.drawRoundRect(x - anchoNodo / 2, y, anchoNodo, ALTO_NODO, 20, 20);
+            hojas.add(new HojaDibujada(x, y + ALTO_NODO / 2, anchoNodo));
+        }
+        
+        if (nivel == 1) {
+            g2d.setColor(NEON_PURPURA);
+            g2d.drawRoundRect(x - anchoNodo / 2, y, anchoNodo, ALTO_NODO, 20, 20);
         }
     }
 
     /**
-     * Método recursivo principal que dibuja un nodo y calcula matemáticamente
-     * la posición en pantalla de todos sus hijos.
-     * * @param g2d El motor gráfico de Java 2D.
-     * @param nodo El nodo actual que se está dibujando.
-     * @param x Coordenada X central del nodo.
-     * @param y Coordenada Y superior del nodo.
-     * @param nivel Profundidad en el árbol (1 es la raíz).
+     * Dibuja la lista enlazada de hojas usando las posiciones reales calculadas
+     * por el layout del árbol.
+     * 
+     * @param g2d Contexto gráfico 2D
+     * @param hojas Lista de hojas con sus posiciones calculadas
      */
-    @SuppressWarnings("unchecked")
-    private void dibujarNodoRecursivo(Graphics2D g2d, NodoBPlus<Integer> nodo, int x, int y, int nivel) {
-        // 1. DIBUJAR LA TARJETA DEL NODO (Glassmorphism)
-        g2d.setColor(FONDO_TARJETA);
-        g2d.fillRoundRect(x - ANCHO_NODO / 2, y, ANCHO_NODO, ALTO_NODO, 20, 20);
-        
-        // Borde sutil por defecto (se sobreescribirá según el tipo de nodo)
-        g2d.setColor(new Color(255, 255, 255, 40));
-        g2d.drawRoundRect(x - ANCHO_NODO / 2, y, ANCHO_NODO, ALTO_NODO, 20, 20);
+    private void dibujarEnlacesEntreHojas(Graphics2D g2d, List<HojaDibujada> hojas) {
+        g2d.setColor(NEON_FUCSIA);
 
-        // 2. DIBUJAR CLAVES DENTRO DEL NODO
-        g2d.setColor(TEXTO_CLARO);
-        g2d.setFont(new Font("Monospaced", Font.BOLD, 22));
-        
-        // Mostrar claves de forma minimalista
-        String clavesString = nodo.toStringClaves(); 
-        FontMetrics fm = g2d.getFontMetrics();
-        // Centrar el texto matemáticamente dentro de la caja
-        g2d.drawString(clavesString, x - fm.stringWidth(clavesString) / 2, y + ALTO_NODO / 2 + fm.getAscent() / 2 - 2);
+        for (int i = 0; i < hojas.size() - 1; i++) {
+            HojaDibujada actual = hojas.get(i);
+            HojaDibujada siguiente = hojas.get(i + 1);
+            int xInicio = actual.xCentro + actual.ancho / 2;
+            int xFin = siguiente.xCentro - siguiente.ancho / 2;
 
-        // 3. DIBUJAR CONEXIONES HACIA ABAJO (Recursión)
-        if (nodo instanceof NodoInterno) {
-            NodoInterno<Integer> interno = (NodoInterno<Integer>) nodo;
-            
-            // Calcular el ancho total que ocuparán los hijos en el nivel inferior
-            int numHijos = interno.getHijos().length;
-            int anchoTotalHijos = (numHijos * ANCHO_NODO) + ((numHijos - 1) * ESPACIO_HORIZONTAL);
-            int xInicialHijos = x - anchoTotalHijos / 2 + ANCHO_NODO / 2;
-            int yHijos = y + ESPACIO_VERTICAL;
-
-            // Diferenciamos los bordes de los nodos internos (Cian)
-            g2d.setColor(NEON_AZUL);
-            g2d.drawRoundRect(x - ANCHO_NODO / 2, y, ANCHO_NODO, ALTO_NODO, 20, 20);
-
-            // Recursión para cada hijo del arreglo
-            for (int i = 0; i < numHijos; i++) {
-                if (interno.getHijos()[i] != null) {
-                    int xHijo = xInicialHijos + i * (ANCHO_NODO + ESPACIO_HORIZONTAL);
-                    
-                    // Dibujar flecha (línea) hacia el hijo
-                    g2d.setColor(NEON_AZUL);
-                    g2d.drawLine(x, y + ALTO_NODO, xHijo, yHijos);
-                    
-                    // SOLUCIÓN: Casteo explícito del hijo para la llamada recursiva
-                    NodoBPlus<Integer> hijoComoEntero = (NodoBPlus<Integer>) interno.getHijos()[i];
-                    dibujarNodoRecursivo(g2d, hijoComoEntero, xHijo, yHijos, nivel + 1);
-                }
-            }
-        } else if (nodo instanceof NodoHoja) {
-            // Diferenciamos los bordes de los nodos hoja (Fucsia/Magenta)
-            g2d.setColor(NEON_FUCSIA);
-            g2d.drawRoundRect(x - ANCHO_NODO / 2, y, ANCHO_NODO, ALTO_NODO, 20, 20);
-            
-            // REGLA DEL B+: Dibujar lista enlazada entre hojas (flechas horizontales)
-            NodoHoja<Integer, Boleta> hoja = (NodoHoja<Integer, Boleta>) nodo;
-            if (hoja.getSiguiente() != null) {
-                g2d.setColor(NEON_FUCSIA);
-                int xSiguiente = x + ANCHO_NODO + ESPACIO_HORIZONTAL;
-                
-                // Dibujar la línea horizontal conectora
-                g2d.drawLine(x + ANCHO_NODO / 2, y + ALTO_NODO / 2, xSiguiente - ANCHO_NODO / 2, y + ALTO_NODO / 2);
-                
-                // Pequeño triángulo para que parezca una flecha ->
-                g2d.fillPolygon(
-                    new int[]{xSiguiente - ANCHO_NODO / 2 - 5, xSiguiente - ANCHO_NODO / 2 - 5, xSiguiente - ANCHO_NODO / 2},
-                    new int[]{y + ALTO_NODO / 2 - 5, y + ALTO_NODO / 2 + 5, y + ALTO_NODO / 2}, 
-                    3
-                );
-            }
+            g2d.drawLine(xInicio, actual.yCentro, xFin, siguiente.yCentro);
+            g2d.fillPolygon(
+                new int[]{xFin - 5, xFin - 5, xFin},
+                new int[]{siguiente.yCentro - 5, siguiente.yCentro + 5, siguiente.yCentro},
+                3
+            );
         }
+    }
+
+    /**
+     * Clase auxiliar para almacenar la posición de una hoja durante el dibujo.
+     */
+    private static class HojaDibujada {
+        /** Coordenada X del centro de la hoja. */
+        private final int xCentro;
         
-        // Si el nodo es la Raíz (Nivel 1), sobrescribimos su borde a color Púrpura para identificarla fácilmente
-        if (nivel == 1) {
-            g2d.setColor(NEON_PURPURA);
-            g2d.drawRoundRect(x - ANCHO_NODO / 2, y, ANCHO_NODO, ALTO_NODO, 20, 20);
+        /** Coordenada Y del centro de la hoja. */
+        private final int yCentro;
+        
+        /** Ancho de la hoja. */
+        private final int ancho;
+
+        /**
+         * Constructor de la hoja dibujada.
+         * @param xCentro Coordenada X del centro
+         * @param yCentro Coordenada Y del centro
+         * @param ancho Ancho de la hoja
+         */
+        private HojaDibujada(int xCentro, int yCentro, int ancho) {
+            this.xCentro = xCentro;
+            this.yCentro = yCentro;
+            this.ancho = ancho;
         }
     }
 }

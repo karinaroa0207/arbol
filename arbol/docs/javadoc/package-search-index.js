@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"edu.co.udistrital.controlador"},{"l":"edu.co.udistrital.modelo"},{"l":"edu.co.udistrital.vista"}];updateSearchResults();

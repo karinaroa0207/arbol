@@ -3,6 +3,8 @@ package edu.co.udistrital.modelo;
 /**
  * Las Hojas están en el nivel inferior del árbol. 
  * Son los ÚNICOS nodos que guardan los valores (V), como nuestras Boletas.
+ * @param <K> Tipo de clave (debe ser Comparable)
+ * @param <V> Tipo de valor almacenado en la hoja
  */
 public class NodoHoja<K extends Comparable<K>, V> extends NodoBPlus<K> {
     

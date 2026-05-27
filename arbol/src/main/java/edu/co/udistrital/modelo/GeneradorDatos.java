@@ -6,8 +6,18 @@ import java.util.Random;
  * Clase utilitaria (Factory) para generar datos de prueba (Mock Data).
  * Permite que la inserción en el árbol sea más ágil sin necesidad de 
  * escribir a mano el evento y la zona cada vez.
+ * 
+ * @author Karina Roa
+ * @version 1.0
  */
 public class GeneradorDatos {
+    
+    /**
+     * Constructor privado para evitar instanciación (clase utilitaria).
+     */
+    private GeneradorDatos() {
+        // Constructor vacío y privado
+    }
     
     // Arreglos de datos prefabricados
     private static final String[] EVENTOS = {
@@ -21,13 +31,13 @@ public class GeneradorDatos {
 
     /**
      * Construye un objeto Boleta asignándole un evento y una zona al azar.
-     * @param id El identificador único ingresado por el usuario.
-     * @return Objeto Boleta instanciado y listo para guardar en el árbol.
+     * 
+     * @param id El identificador único ingresado por el usuario
+     * @return Objeto Boleta instanciado y listo para guardar en el árbol
      */
     public static Boleta generarBoletaAleatoria(int id) {
         Random rnd = new Random();
         
-        // Seleccionar aleatoriamente de los arreglos
         String eventoAleatorio = EVENTOS[rnd.nextInt(EVENTOS.length)];
         String zonaAleatoria = ZONAS[rnd.nextInt(ZONAS.length)];
         
